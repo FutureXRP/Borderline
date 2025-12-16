@@ -1,97 +1,125 @@
-import React, { useMemo, useState } from "react";
-import { TERRITORIES } from "./map";
-import type { GameConfig, GameState, Order, PlayerId } from "./types";
-import MapSvg from "./components/MapSvg";
-import Sidebar from "./components/Sidebar";
-import PassDeviceOverlay from "./components/PassDeviceOverlay";
-import LogPanel from "./components/LogPanel";
-import { computeSuppliedByTerritory } from "./engine/supply";
+import React, { useState, useEffect } from "react";
+import MapSvg from "./MapSvg";
+import Sidebar from "./Sidebar";
+import LogPanel from "./LogPanel";
+import PassDeviceOverlay from "./PassDeviceOverlay";
 import { newGame } from "./engine/init";
 import { resolveRound } from "./engine/resolve";
+import type { GameState, Order, PlayerId, GameConfig } from "./types";
+import { TERRITORY_BY_ID } from "./map";
 
-function makeConfig(playerCount: number, seed: number): GameConfig {
-  return {
-    playerCount,
-    seed,
-    maxOrdersPerRound: 3,
-    maxAttackOrdersPerRound: 1,
-  };
-}
+const INITIAL_CONFIG: GameConfig = {
+  playerCount: 4,
+  seed: Math.floor(Math.random() * 1_000_000_000),
+  maxOrdersPerRound: 3,
+  maxAttackOrdersPerRound: 1,
+};
 
 export default function App() {
-  const [playerCount, setPlayerCount] = useState<number>(3);
-  const [seed, setSeed] = useState<number>(() =>
-    Math.floor(Math.random() * 1_000_000)
-  );
-
-  const [state, setState] = useState<GameState>(() =>
-    newGame(makeConfig(playerCount, seed))
-  );
+  const [state, setState] = useState<GameState>(newGame(INITIAL_CONFIG));
   const [selectedId, setSelectedId] = useState<string | null>(null);
-
-  const [overlayVisible, setOverlayVisible] = useState<boolean>(false);
-  const [overlayText, setOverlayText] = useState<{
+  const [passOverlay, setPassOverlay] = useState<{
+    visible: boolean;
     title: string;
     subtitle: string;
-    btn: string;
-  }>({
-    title: "Pass Device",
-    subtitle: "Hand the device to the next player.",
-    btn: "Continue",
-  });
+    buttonText: string;
+  }>({ visible: false, title: "", subtitle: "", buttonText: "" });
 
-  const selectedDetails = useMemo(() => {
-    if (!selectedId) return null;
-    const owner = state.ownerByTerritory[selectedId];
-    const units = state.unitsByTerritory[selectedId];
-    const supplied = state.suppliedByTerritory[selectedId];
-    return { owner, units, supplied };
-  }, [selectedId, state]);
+  useEffect(() => {
+    if (state.winner != null) {
+      setPassOverlay({
+        visible: true,
+        title: "Game Over!",
+        subtitle: `Player ${state.winner + 1} wins with 3+ points!`,
+        buttonText: "New Game",
+      });
+    } else if (state.planningConfirmed.every(Boolean)) {
+      // Auto-resolve when all confirmed (optional UX)
+      // Or just wait for manual resolve
+    }
+  }, [state.winner, state.planningConfirmed]);
 
-  function showPassOverlay(nextPlanner: PlayerId) {
-    setOverlayText({
-      title: "Pass Device",
-      subtitle: `Hand the device to Player ${nextPlanner + 1}. Tap Continue when ready.`,
-      btn: `Continue as P${nextPlanner + 1}`,
-    });
-    setOverlayVisible(true);
+  function addOrder(order: Order) {
+    setState((s) => ({
+      ...s,
+      ordersByPlayer: {
+        ...s.ordersByPlayer,
+        [s.currentPlanner]: [...(s.ordersByPlayer[s.currentPlanner] ?? []), order],
+      },
+    }));
   }
 
-  function onAddOrder(order: Order) {
-    setState((s) => {
-      const next = {
-        ...s,
-        ordersByPlayer: {
-          ...s.ordersByPlayer,
-          [order.playerId]: [
-            ...(s.ordersByPlayer[order.playerId] ?? []),
-            order,
-          ],
-        },
-      };
-      next.suppliedByTerritory = computeSuppliedByTerritory(
-        next.ownerByTerritory,
-        next.capitalByPlayer
-      );
-      return next;
+  function removeOrder(playerId: PlayerId, index: number) {
+    setState((s) => ({
+      ...s,
+      ordersByPlayer: {
+        ...s.ordersByPlayer,
+        [playerId]: s.ordersByPlayer[playerId].filter((_, i) => i !== index),
+      },
+    }));
+  }
+
+  function confirmPlayer(playerId: PlayerId) {
+    setState((s) => ({
+      ...s,
+      planningConfirmed: s.planningConfirmed.map((c, i) => (i === playerId ? true : c)),
+      currentPlanner: (s.currentPlanner + 1) % s.config.playerCount,
+    }));
+
+    // Show pass device overlay for next player
+    const next = (state.currentPlanner + 1) % state.config.playerCount;
+    setPassOverlay({
+      visible: true,
+      title: `Player ${next + 1}'s Turn`,
+      subtitle: `Round ${state.round} Planning`,
+      buttonText: "Continue",
     });
   }
 
-  function onRemoveOrder(playerId: PlayerId, index: number) {
-    setState((s) => {
-      const list = [...(s.ordersByPlayer[playerId] ?? [])];
-      list.splice(index, 1);
-      return {
-        ...s,
-        ordersByPlayer: { ...s.ordersByPlayer, [playerId]: list },
-      };
-    });
+  function handleResolveRound() {
+    setState(resolveRound(state));
+    setPassOverlay({ visible: false, title: "", subtitle: "", buttonText: "" });
   }
 
-  function onConfirmPlayer(playerId: PlayerId) {
-    setState((s) => {
-      const confirmed = [...s.planningConfirmed];
-      confirmed[playerId] = true;
+  function handleNewGame() {
+    setState(newGame(INITIAL_CONFIG));
+    setPassOverlay({ visible: false, title: "", subtitle: "", buttonText: "" });
+  }
 
-      let nextPlanner = s.currentPlanner;
-      if
+  function handleOverlayContinue() {
+    setPassOverlay({ visible: false, title: "", subtitle: "", buttonText: "" });
+  }
+
+  return (
+    <div className="app">
+      <div className="main">
+        <MapSvg
+          territories={Object.values(TERRITORY_BY_ID)}
+          selectedId={selectedId}
+          onSelect={setSelectedId}
+          ownerByTerritory={state.ownerByTerritory}
+          unitsByTerritory={state.unitsByTerritory}
+          suppliedByTerritory={state.suppliedByTerritory}
+          capitalByPlayer={state.capitalByPlayer}
+        />
+        <Sidebar
+          state={state}
+          selectedId={selectedId}
+          onAddOrder={addOrder}
+          onRemoveOrder={removeOrder}
+          onConfirmPlayer={confirmPlayer}
+          onResolveRound={handleResolveRound}
+          onNewGame={handleNewGame}
+        />
+      </div>
+      <LogPanel lines={state.log} />
+      <PassDeviceOverlay
+        visible={passOverlay.visible}
+        title={passOverlay.title}
+        subtitle={passOverlay.subtitle}
+        buttonText={passOverlay.buttonText}
+        onContinue={handleOverlayContinue}
+      />
+    </div>
+  );
+}
