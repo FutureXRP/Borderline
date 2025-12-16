@@ -28,8 +28,6 @@ jobs:
 
       - name: Install dependencies
         run: npm install
-        # Changed from "npm ci" because you don't have a package-lock.json yet
-        # "npm install" will install everything and create a package-lock.json during the build
 
       - name: Build
         run: npm run build
