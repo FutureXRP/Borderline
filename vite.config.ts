@@ -1,8 +1,8 @@
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
 
-// GitHub Pages base path must match the repo name exactly (case-sensitive)
+// Correct base path for your repo
 export default defineConfig({
   plugins: [react()],
-  base: "/Borderline/",
-});
+  base: '/borderline-orders-and-supply/',
+})
