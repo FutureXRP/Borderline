@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from "react";
-import MapSvg from "./MapSvg";
-import Sidebar from "./Sidebar";
-import LogPanel from "./LogPanel";
-import PassDeviceOverlay from "./PassDeviceOverlay";
+import MapSvg from "./components/MapSvg";
+import Sidebar from "./components/Sidebar";
+import LogPanel from "./components/LogPanel";
+import PassDeviceOverlay from "./components/PassDeviceOverlay";
 import { newGame } from "./engine/init";
 import { resolveRound } from "./engine/resolve";
 import type { GameState, Order, PlayerId, GameConfig } from "./types";
-import { TERRITORY_BY_ID } from "./map";
+import { TERRITORY_BY_ID } from "./map";  // or "./maps" if not renamed
 
 const INITIAL_CONFIG: GameConfig = {
   playerCount: 4,
