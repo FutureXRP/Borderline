@@ -1,5 +1,7 @@
 import type { GameConfig, GameState, PlayerId } from "../types";
-import { TERRITORIES } from "../map";  // or "../maps" if you kept the name with "s"
+import { TERRITORIES } from "../map";
+import { createRng } from "./rng";
+import { computeSuppliedByTerritory } from "./supply";
 
 function shuffle<T>(arr: T[], rng: { next: () => number }): T[] {
   const a = [...arr];
@@ -12,27 +14,62 @@ function shuffle<T>(arr: T[], rng: { next: () => number }): T[] {
 
 export function newGame(config: GameConfig): GameState {
   const rng = createRng(config.seed);
-  const ids = TERRITORIES.map((t: { id: string }) => t.id);  // explicit type for t
+  const ids = TERRITORIES.map((t) => t.id);
   const shuffled = shuffle(ids, rng);
+
   const ownerByTerritory: Record<string, PlayerId> = {};
   const unitsByTerritory: Record<string, number> = {};
   const capitalByPlayer: Record<PlayerId, string> = {};
   const pointsByPlayer: Record<PlayerId, number> = {};
-  const ordersByPlayer: Record<PlayerId, any> = {};
+  const ordersByPlayer: Record<PlayerId, Order[]> = {};
 
   for (let p = 0 as PlayerId; p < config.playerCount; p++) {
     pointsByPlayer[p] = 0;
     ordersByPlayer[p] = [];
   }
 
-  // Deal territories
+  // Deal territories evenly
   for (let i = 0; i < shuffled.length; i++) {
     const p = (i % config.playerCount) as PlayerId;
-    const tid = shuffled[i] as string;  // explicit cast to string
+    const tid = shuffled[i];
     ownerByTerritory[tid] = p;
     unitsByTerritory[tid] = 2;
     if (capitalByPlayer[p] == null) capitalByPlayer[p] = tid;
   }
 
-  // ... rest of your init code (supply, extra units, log, etc.)
+  let supplied = computeSuppliedByTerritory(ownerByTerritory, capitalByPlayer);
+
+  // Give each player +6 extra units on capital if supplied
+  for (let p = 0 as PlayerId; p < config.playerCount; p++) {
+    let toPlace = 6;
+    const cap = capitalByPlayer[p];
+    if (supplied[cap]) {
+      unitsByTerritory[cap] += toPlace;
+      toPlace = 0;
+    }
+    // If not supplied, they lose the extra units for now (can be improved later)
+  }
+
+  supplied = computeSuppliedByTerritory(ownerByTerritory, capitalByPlayer);
+
+  const state: GameState = {
+    config,
+    round: 1,
+    currentPlanner: 0,
+    planningConfirmed: Array(config.playerCount).fill(false),
+    ownerByTerritory,
+    unitsByTerritory,
+    capitalByPlayer,
+    pointsByPlayer,
+    ordersByPlayer,
+    suppliedByTerritory: supplied,
+    log: [
+      "=== ROUND 1 PLANNING ===",
+      `Players: ${config.playerCount}`,
+      `Seed: ${config.seed}`,
+    ],
+    winner: null,
+  };
+
+  return state;
 }
