@@ -6,7 +6,7 @@ import PassDeviceOverlay from "./components/PassDeviceOverlay";
 import { newGame } from "./engine/init";
 import { resolveRound } from "./engine/resolve";
 import type { GameState, Order, PlayerId, GameConfig } from "./types";
-import { TERRITORY_BY_ID } from "./map";  // or "./maps" if not renamed
+import { TERRITORY_BY_ID } from "./map";
 
 const INITIAL_CONFIG: GameConfig = {
   playerCount: 4,
