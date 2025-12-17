@@ -1,4 +1,4 @@
-import type { GameConfig, GameState, PlayerId } from "../types";
+import type { GameConfig, GameState, PlayerId, Order } from "../types";  // Added Order here
 import { TERRITORIES } from "../map";
 import { createRng } from "./rng";
 import { computeSuppliedByTerritory } from "./supply";
@@ -28,7 +28,6 @@ export function newGame(config: GameConfig): GameState {
     ordersByPlayer[p] = [];
   }
 
-  // Deal territories evenly
   for (let i = 0; i < shuffled.length; i++) {
     const p = (i % config.playerCount) as PlayerId;
     const tid = shuffled[i];
@@ -39,15 +38,12 @@ export function newGame(config: GameConfig): GameState {
 
   let supplied = computeSuppliedByTerritory(ownerByTerritory, capitalByPlayer);
 
-  // Give each player +6 extra units on capital if supplied
   for (let p = 0 as PlayerId; p < config.playerCount; p++) {
     let toPlace = 6;
     const cap = capitalByPlayer[p];
     if (supplied[cap]) {
       unitsByTerritory[cap] += toPlace;
-      toPlace = 0;
     }
-    // If not supplied, they lose the extra units for now (can be improved later)
   }
 
   supplied = computeSuppliedByTerritory(ownerByTerritory, capitalByPlayer);
