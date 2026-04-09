@@ -1,0 +1,1323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Borderline</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --bg2: #111827;
+    --bg3: #1a2236;
+    --border: rgba(99,179,237,0.15);
+    --border2: rgba(99,179,237,0.3);
+    --accent: #63b3ed;
+    --accent2: #f6ad55;
+    --accent3: #68d391;
+    --danger: #fc8181;
+    --text: #e2e8f0;
+    --muted: #718096;
+    --font-main: 'Rajdhani', sans-serif;
+    --font-mono: 'Share Tech Mono', monospace;
+    --font-display: 'Orbitron', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-main);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* FACTION COLORS */
+  .f0 { --fc: #63b3ed; --fl: #1a365d; } /* USA - Blue */
+  .f1 { --fc: #fc8181; --fl: #742a2a; } /* Russia - Red */
+  .f2 { --fc: #f6ad55; --fl: #7b341e; } /* China - Amber */
+  .f3 { --fc: #68d391; --fl: #1c4532; } /* EU - Green */
+  .f4 { --fc: #b794f4; --fl: #44337a; } /* India - Purple */
+
+  /* LAYOUT */
+  #app { display: grid; grid-template-columns: 1fr 340px; grid-template-rows: 56px 1fr; height: 100vh; }
+  #topbar { grid-column: 1/-1; background: var(--bg2); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 1.5rem; gap: 1.5rem; }
+  #map-area { background: var(--bg); overflow: hidden; position: relative; }
+  #sidebar { background: var(--bg2); border-left: 1px solid var(--border); overflow-y: auto; display: flex; flex-direction: column; }
+
+  /* TOPBAR */
+  .logo { font-family: var(--font-display); font-size: 14px; font-weight: 900; color: var(--accent); letter-spacing: 0.1em; white-space: nowrap; }
+  .logo span { color: var(--accent2); }
+  .turn-info { font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+  .turn-info strong { color: var(--text); }
+  .phase-badge { font-family: var(--font-mono); font-size: 11px; padding: 3px 10px; border-radius: 2px; background: var(--bg3); border: 1px solid var(--border2); color: var(--accent); letter-spacing: 0.08em; text-transform: uppercase; }
+  .topbar-right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+  .btn { font-family: var(--font-main); font-size: 13px; font-weight: 600; padding: 6px 16px; border-radius: 2px; border: 1px solid var(--border2); background: transparent; color: var(--accent); cursor: pointer; letter-spacing: 0.05em; transition: all 0.15s; }
+  .btn:hover { background: rgba(99,179,237,0.1); }
+  .btn.primary { background: rgba(99,179,237,0.15); border-color: var(--accent); }
+  .btn.primary:hover { background: rgba(99,179,237,0.25); }
+  .btn.danger { border-color: var(--danger); color: var(--danger); }
+  .btn.danger:hover { background: rgba(252,129,129,0.1); }
+
+  /* MAP SVG */
+  #map-svg { width: 100%; height: 100%; }
+  .territory { cursor: pointer; transition: opacity 0.15s; stroke-width: 1.5; }
+  .territory:hover { opacity: 0.85; filter: brightness(1.2); }
+  .territory.selected { stroke-width: 3; filter: brightness(1.4); }
+  .territory.attackable { stroke: #fc8181; stroke-width: 2.5; animation: pulse-red 1s infinite; }
+  .territory.movable { stroke: #68d391; stroke-width: 2.5; animation: pulse-green 1s infinite; }
+  @keyframes pulse-red { 0%,100%{stroke-opacity:1} 50%{stroke-opacity:0.4} }
+  @keyframes pulse-green { 0%,100%{stroke-opacity:1} 50%{stroke-opacity:0.4} }
+  .t-label { font-family: var(--font-mono); font-size: 9px; fill: rgba(255,255,255,0.9); pointer-events: none; text-anchor: middle; dominant-baseline: middle; }
+  .t-troops { font-family: var(--font-display); font-size: 11px; font-weight: 700; fill: #fff; pointer-events: none; text-anchor: middle; dominant-baseline: middle; }
+  .t-icon { font-size: 9px; fill: rgba(255,255,255,0.7); pointer-events: none; text-anchor: middle; dominant-baseline: middle; }
+  .continent-label { font-family: var(--font-display); font-size: 10px; fill: rgba(255,255,255,0.15); letter-spacing: 0.15em; text-anchor: middle; pointer-events: none; text-transform: uppercase; }
+
+  /* SIDEBAR */
+  .sb-section { padding: 14px 16px; border-bottom: 1px solid var(--border); }
+  .sb-title { font-family: var(--font-mono); font-size: 10px; color: var(--muted); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 10px; }
+  .faction-strip { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .faction-strip:last-child { border-bottom: none; }
+  .faction-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .faction-name { font-size: 13px; font-weight: 600; flex: 1; }
+  .faction-stats { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+  .faction-stats span { color: var(--text); }
+  .current-player { background: rgba(99,179,237,0.06); border-radius: 4px; padding: 2px 6px; }
+
+  /* RESOURCE BAR */
+  .res-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+  .res-card { background: var(--bg3); border: 1px solid var(--border); border-radius: 3px; padding: 8px; text-align: center; }
+  .res-icon { font-size: 16px; margin-bottom: 2px; }
+  .res-val { font-family: var(--font-display); font-size: 16px; font-weight: 700; }
+  .res-lbl { font-family: var(--font-mono); font-size: 9px; color: var(--muted); letter-spacing: 0.08em; }
+
+  /* EVENT CARD */
+  .event-card { background: var(--bg3); border: 1px solid var(--border2); border-radius: 4px; padding: 12px; position: relative; overflow: hidden; }
+  .event-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--accent2); }
+  .event-name { font-size: 14px; font-weight: 700; color: var(--accent2); margin-bottom: 4px; }
+  .event-desc { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+  /* TECH TREE */
+  .tech-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .tech-item { background: var(--bg3); border: 1px solid var(--border); border-radius: 3px; padding: 8px; cursor: pointer; transition: all 0.15s; }
+  .tech-item:hover { border-color: var(--border2); }
+  .tech-item.unlocked { border-color: var(--accent3); background: rgba(104,211,145,0.05); }
+  .tech-item.affordable { border-color: var(--accent); background: rgba(99,179,237,0.05); cursor: pointer; }
+  .tech-name { font-size: 12px; font-weight: 600; }
+  .tech-cost { font-family: var(--font-mono); font-size: 10px; color: var(--muted); }
+  .tech-effect { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+  /* DIPLOMACY */
+  .treaty-item { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+  .treaty-item:last-child { border-bottom: none; }
+  .treaty-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .treaty-badge { font-family: var(--font-mono); font-size: 10px; padding: 2px 6px; border-radius: 2px; margin-left: auto; }
+  .treaty-nap { background: rgba(104,211,145,0.15); color: var(--accent3); }
+  .treaty-war { background: rgba(252,129,129,0.15); color: var(--danger); }
+  .treaty-trade { background: rgba(246,173,85,0.15); color: var(--accent2); }
+
+  /* LOG */
+  #log { flex: 1; overflow-y: auto; padding: 10px 16px; }
+  .log-entry { font-family: var(--font-mono); font-size: 11px; color: var(--muted); padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.03); line-height: 1.4; }
+  .log-entry .le-turn { color: var(--accent); }
+  .log-entry .le-combat { color: var(--danger); }
+  .log-entry .le-event { color: var(--accent2); }
+  .log-entry .le-tech { color: var(--accent3); }
+  .log-entry .le-diplo { color: #b794f4; }
+
+  /* PHASE STEPS */
+  .phase-steps { display: flex; gap: 4px; padding: 10px 16px; border-bottom: 1px solid var(--border); }
+  .ps { flex: 1; height: 3px; border-radius: 1px; background: var(--bg3); }
+  .ps.done { background: var(--accent3); }
+  .ps.active { background: var(--accent); }
+
+  /* MODAL */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 100; backdrop-filter: blur(4px); }
+  .modal { background: var(--bg2); border: 1px solid var(--border2); border-radius: 6px; padding: 24px; max-width: 440px; width: 90%; }
+  .modal h2 { font-family: var(--font-display); font-size: 16px; font-weight: 700; color: var(--accent); margin-bottom: 16px; letter-spacing: 0.05em; }
+  .modal-body { font-size: 13px; line-height: 1.7; color: var(--muted); margin-bottom: 16px; }
+  .modal-body strong { color: var(--text); }
+  .dice-row { display: flex; gap: 8px; margin: 12px 0; }
+  .die { width: 44px; height: 44px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-size: 20px; font-weight: 900; }
+  .die.atk { background: rgba(252,129,129,0.15); border: 2px solid var(--danger); color: var(--danger); }
+  .die.def { background: rgba(99,179,237,0.15); border: 2px solid var(--accent); color: var(--accent); }
+  .die.win { background: rgba(104,211,145,0.2); border-color: var(--accent3); color: var(--accent3); }
+  .result-row { display: flex; justify-content: space-between; font-size: 13px; padding: 8px 0; border-top: 1px solid var(--border); margin-top: 8px; }
+  .modal-btns { display: flex; gap: 8px; justify-content: flex-end; }
+
+  /* SETUP SCREEN */
+  #setup-screen { position: fixed; inset: 0; background: var(--bg); z-index: 200; display: flex; align-items: center; justify-content: center; }
+  .setup-box { background: var(--bg2); border: 1px solid var(--border2); border-radius: 8px; padding: 40px; max-width: 600px; width: 90%; }
+  .setup-box h1 { font-family: var(--font-display); font-size: 28px; font-weight: 900; color: var(--accent); letter-spacing: 0.08em; margin-bottom: 4px; }
+  .setup-box .sub { font-size: 14px; color: var(--muted); margin-bottom: 32px; font-family: var(--font-mono); }
+  .player-setup { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 24px; }
+  .ps-card { background: var(--bg3); border: 1px solid var(--border); border-radius: 4px; padding: 14px; cursor: pointer; transition: all 0.15s; }
+  .ps-card.selected { border-color: var(--accent); background: rgba(99,179,237,0.06); }
+  .ps-card:hover { border-color: var(--border2); }
+  .ps-flag { font-size: 24px; margin-bottom: 6px; }
+  .ps-name { font-size: 15px; font-weight: 700; }
+  .ps-ability { font-size: 11px; color: var(--muted); margin-top: 4px; line-height: 1.4; }
+  .count-select { display: flex; gap: 8px; margin-bottom: 24px; align-items: center; }
+  .count-select label { font-family: var(--font-mono); font-size: 12px; color: var(--muted); margin-right: 4px; }
+  .count-btn { width: 36px; height: 36px; border-radius: 3px; border: 1px solid var(--border2); background: transparent; color: var(--text); font-family: var(--font-display); font-size: 16px; cursor: pointer; }
+  .count-btn.active { background: rgba(99,179,237,0.15); border-color: var(--accent); color: var(--accent); }
+
+  /* NOTIFICATION */
+  #notif { position: fixed; top: 70px; left: 50%; transform: translateX(-50%); background: var(--bg2); border: 1px solid var(--border2); border-radius: 4px; padding: 12px 20px; font-family: var(--font-mono); font-size: 12px; z-index: 300; opacity: 0; transition: opacity 0.3s; pointer-events: none; max-width: 400px; text-align: center; }
+  #notif.show { opacity: 1; }
+
+  /* CYBER PANEL */
+  .cyber-ops { display: grid; grid-template-columns: 1fr; gap: 6px; }
+  .cyber-op { background: var(--bg3); border: 1px solid var(--border); border-radius: 3px; padding: 8px 10px; cursor: pointer; transition: all 0.15s; display: flex; justify-content: space-between; align-items: center; }
+  .cyber-op:hover { border-color: #b794f4; background: rgba(183,148,244,0.05); }
+  .cyber-op-name { font-size: 12px; font-weight: 600; color: #b794f4; }
+  .cyber-op-desc { font-size: 11px; color: var(--muted); }
+  .cyber-cost { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+
+  /* TROOP SLIDER */
+  .troop-slider { width: 100%; margin: 10px 0; accent-color: var(--accent); }
+
+  /* WINNER SCREEN */
+  #winner-screen { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center; z-index: 500; backdrop-filter: blur(8px); }
+  #winner-screen.show { display: flex; }
+  .winner-box { text-align: center; padding: 60px; }
+  .winner-box h1 { font-family: var(--font-display); font-size: 48px; font-weight: 900; margin-bottom: 16px; }
+  .winner-box p { font-family: var(--font-mono); font-size: 16px; color: var(--muted); margin-bottom: 32px; }
+
+  scrollbar-width: thin;
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<!-- SETUP SCREEN -->
+<div id="setup-screen">
+  <div class="setup-box">
+    <h1>BORDERLINE</h1>
+    <p class="sub">// the world is yours to take</p>
+
+    <div style="font-family:var(--font-mono);font-size:11px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:10px;">Number of players</div>
+    <div class="count-select">
+      <label>Select:</label>
+      <button class="count-btn" data-n="2" onclick="setPlayerCount(2)">2</button>
+      <button class="count-btn" data-n="3" onclick="setPlayerCount(3)">3</button>
+      <button class="count-btn active" data-n="4" onclick="setPlayerCount(4)">4</button>
+      <button class="count-btn" data-n="5" onclick="setPlayerCount(5)">5</button>
+    </div>
+
+    <div style="font-family:var(--font-mono);font-size:11px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:10px;">Choose your faction</div>
+    <div class="player-setup" id="faction-cards"></div>
+
+    <button class="btn primary" onclick="startGame()" style="width:100%;padding:12px;font-size:15px;font-family:var(--font-display);letter-spacing:0.1em;">DEPLOY FORCES →</button>
+  </div>
+</div>
+
+<!-- WINNER SCREEN -->
+<div id="winner-screen">
+  <div class="winner-box">
+    <h1 id="winner-text">VICTORY</h1>
+    <p id="winner-sub">dominates the world</p>
+    <button class="btn primary" onclick="location.reload()" style="padding:12px 32px;font-family:var(--font-display);letter-spacing:0.1em;">PLAY AGAIN</button>
+  </div>
+</div>
+
+<!-- NOTIFICATION -->
+<div id="notif"></div>
+
+<!-- MODAL -->
+<div id="modal" class="modal-overlay" style="display:none;">
+  <div class="modal" id="modal-content"></div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app">
+  <!-- TOPBAR -->
+  <div id="topbar">
+    <div class="logo">BORDER<span>LINE</span></div>
+    <div class="turn-info" id="turn-info">Round <strong id="round-num">1</strong> — <strong id="cur-player-name">Loading...</strong>'s turn</div>
+    <div class="phase-badge" id="phase-badge">Economy</div>
+    <div class="topbar-right">
+      <span style="font-family:var(--font-mono);font-size:11px;color:var(--muted);" id="action-hint">Select a territory</span>
+      <button class="btn primary" id="phase-btn" onclick="advancePhase()">Next Phase →</button>
+    </div>
+  </div>
+
+  <!-- MAP -->
+  <div id="map-area">
+    <svg id="map-svg" viewBox="0 0 900 560" preserveAspectRatio="xMidYMid meet">
+      <!-- Continent background labels -->
+      <text class="continent-label" x="160" y="120">North America</text>
+      <text class="continent-label" x="250" y="440">South America</text>
+      <text class="continent-label" x="430" y="110">Europe</text>
+      <text class="continent-label" x="430" y="330">Africa</text>
+      <text class="continent-label" x="620" y="130">Russia / Asia</text>
+      <text class="continent-label" x="760" y="400">Oceania</text>
+    </svg>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div id="sidebar">
+    <!-- Phase progress -->
+    <div class="phase-steps" id="phase-steps"></div>
+
+    <!-- Player resources -->
+    <div class="sb-section" id="resource-section">
+      <div class="sb-title">Current Player Resources</div>
+      <div class="res-row">
+        <div class="res-card">
+          <div class="res-icon">⚔️</div>
+          <div class="res-val" id="res-troops" style="color:var(--danger)">0</div>
+          <div class="res-lbl">TROOPS</div>
+        </div>
+        <div class="res-card">
+          <div class="res-icon">💰</div>
+          <div class="res-val" id="res-gdp" style="color:var(--accent2)">0</div>
+          <div class="res-lbl">GDP</div>
+        </div>
+        <div class="res-card">
+          <div class="res-icon">⚡</div>
+          <div class="res-val" id="res-cyber" style="color:#b794f4">0</div>
+          <div class="res-lbl">CYBER</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- World Event -->
+    <div class="sb-section" id="event-section">
+      <div class="sb-title">Active World Event</div>
+      <div class="event-card" id="event-display">
+        <div class="event-name">—</div>
+        <div class="event-desc">No active event</div>
+      </div>
+    </div>
+
+    <!-- Tech Tree -->
+    <div class="sb-section" id="tech-section">
+      <div class="sb-title">Tech Tree — click to unlock</div>
+      <div class="tech-grid" id="tech-display"></div>
+    </div>
+
+    <!-- Cyber Ops -->
+    <div class="sb-section" id="cyber-section" style="display:none">
+      <div class="sb-title">Cyber Operations</div>
+      <div class="cyber-ops" id="cyber-display"></div>
+    </div>
+
+    <!-- Diplomacy -->
+    <div class="sb-section" id="diplo-section">
+      <div class="sb-title">Diplomacy</div>
+      <div id="diplo-display"><div style="font-size:12px;color:var(--muted)">No active treaties</div></div>
+    </div>
+
+    <!-- Factions overview -->
+    <div class="sb-section">
+      <div class="sb-title">Factions</div>
+      <div id="factions-overview"></div>
+    </div>
+
+    <!-- Log -->
+    <div id="log"></div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// GAME DATA
+// ============================================================
+
+const FACTIONS = [
+  { id:0, name:'USA', flag:'🇺🇸', color:'#63b3ed', ability:'Tech Superpower', abilityDesc:'+1 tech point per turn, drones cost -1', techBonus: true },
+  { id:1, name:'Russia', flag:'🇷🇺', color:'#fc8181', ability:'Iron Curtain', abilityDesc:'+2 troops per turn, -1 cyber', militaryBonus: true },
+  { id:2, name:'China', flag:'🇨🇳', color:'#f6ad55', ability:'Economic Engine', abilityDesc:'+2 GDP per turn, trade routes yield double', economyBonus: true },
+  { id:3, name:'EU', flag:'🇪🇺', color:'#68d391', ability:'Diplomatic Bloc', abilityDesc:'Treaties last +1 round, -1 diplo penalty', diploBonus: true },
+  { id:4, name:'India', flag:'🇮🇳', color:'#b794f4', ability:'Cyber Warriors', abilityDesc:'+2 cyber per turn, cyber ops cost -1', cyberBonus: true },
+];
+
+const TERRITORIES = [
+  // North America (continent 0, bonus 5)
+  { id:0, name:'Alaska', cx:75, cy:95, continent:0 },
+  { id:1, name:'NW Canada', cx:145, cy:85, continent:0 },
+  { id:2, name:'Greenland', cx:245, cy:60, continent:0 },
+  { id:3, name:'W Canada', cx:130, cy:130, continent:0 },
+  { id:4, name:'C Canada', cx:195, cy:120, continent:0 },
+  { id:5, name:'E Canada', cx:255, cy:115, continent:0 },
+  { id:6, name:'W USA', cx:120, cy:175, continent:0 },
+  { id:7, name:'E USA', cx:195, cy:175, continent:0 },
+  { id:8, name:'Mexico', cx:150, cy:230, continent:0 },
+  // South America (continent 1, bonus 2)
+  { id:9, name:'Venezuela', cx:225, cy:295, continent:1 },
+  { id:10, name:'Brazil', cx:265, cy:360, continent:1 },
+  { id:11, name:'Peru', cx:215, cy:365, continent:1 },
+  { id:12, name:'Argentina', cx:240, cy:440, continent:1 },
+  // Europe (continent 2, bonus 5)
+  { id:13, name:'Iceland', cx:355, cy:68, continent:2 },
+  { id:14, name:'UK', cx:370, cy:115, continent:2 },
+  { id:15, name:'Scandinavia', cx:430, cy:80, continent:2 },
+  { id:16, name:'W Europe', cx:375, cy:165, continent:2 },
+  { id:17, name:'C Europe', cx:435, cy:145, continent:2 },
+  { id:18, name:'S Europe', cx:430, cy:195, continent:2 },
+  { id:19, name:'E Europe', cx:495, cy:140, continent:2 },
+  // Africa (continent 3, bonus 3)
+  { id:20, name:'N Africa', cx:390, cy:275, continent:3 },
+  { id:21, name:'Egypt', cx:460, cy:255, continent:3 },
+  { id:22, name:'W Africa', cx:375, cy:340, continent:3 },
+  { id:23, name:'E Africa', cx:470, cy:325, continent:3 },
+  { id:24, name:'C Africa', cx:430, cy:380, continent:3 },
+  { id:25, name:'S Africa', cx:450, cy:450, continent:3 },
+  // Asia (continent 4, bonus 7)
+  { id:26, name:'Middle East', cx:530, cy:230, continent:4 },
+  { id:27, name:'India', cx:610, cy:255, continent:4 },
+  { id:28, name:'Russia N', cx:590, cy:90, continent:4 },
+  { id:29, name:'Russia E', cx:680, cy:100, continent:4 },
+  { id:30, name:'C Asia', cx:600, cy:175, continent:4 },
+  { id:31, name:'China', cx:680, cy:200, continent:4 },
+  { id:32, name:'SE Asia', cx:700, cy:290, continent:4 },
+  { id:33, name:'Korea/Japan', cx:760, cy:175, continent:4 },
+  // Oceania (continent 5, bonus 2)
+  { id:34, name:'Indonesia', cx:740, cy:355, continent:5 },
+  { id:35, name:'New Guinea', cx:800, cy:355, continent:5 },
+  { id:36, name:'W Australia', cx:760, cy:440, continent:5 },
+  { id:37, name:'E Australia', cx:840, cy:430, continent:5 },
+];
+
+const ADJACENCY = {
+  0:[1,3], 1:[0,2,3,4], 2:[1,4,5,13], 3:[0,1,4,6], 4:[1,2,3,5,7],
+  5:[2,4,7], 6:[3,4,7,8], 7:[4,5,6,8], 8:[6,7,9],
+  9:[8,10,11], 10:[9,11,12], 11:[9,10,12], 12:[10,11],
+  13:[2,14,15], 14:[13,15,16,17], 15:[13,14,17,19,28],
+  16:[14,17,18,20], 17:[14,15,16,18,19], 18:[16,17,19,20,21,26],
+  19:[15,17,18,26,28,30],
+  20:[16,18,21,22], 21:[18,20,23,26], 22:[20,23,24], 23:[21,22,24,25,26],
+  24:[22,23,25], 25:[23,24],
+  26:[18,21,23,27,30], 27:[26,30,31,32], 28:[15,19,29,30],
+  29:[28,30,31,33], 30:[19,26,27,28,29,31], 31:[27,29,30,32,33],
+  32:[27,31,33,34], 33:[29,31,32],
+  34:[32,35,36], 35:[34,37], 36:[34,37], 37:[35,36],
+};
+
+const CONTINENT_NAMES = ['N. America','S. America','Europe','Africa','Asia','Oceania'];
+const CONTINENT_BONUS = [5,2,5,3,7,2];
+
+const WORLD_EVENTS = [
+  { name:'Global Pandemic', effect:'All troop movement halved this round', impact: e => { e.movePenalty = 0.5; } },
+  { name:'Oil Crisis', effect:'All GDP income reduced by 2 this round', impact: e => { e.gdpPenalty = 2; } },
+  { name:'Cyberattack Wave', effect:'All players gain +2 cyber points', impact: e => { e.cyberBonus = 2; } },
+  { name:'Climate Disaster', effect:'Coastal territories yield -1 GDP', impact: e => { e.coastalPenalty = true; } },
+  { name:'Arms Race', effect:'All players receive +2 troops this round', impact: e => { e.troopBonus = 2; } },
+  { name:'Trade War', effect:'No trade treaties active this round', impact: e => { e.noTrade = true; } },
+  { name:'Space Race', effect:'Leading tech player gains +3 GDP', impact: e => { e.spaceBonus = true; } },
+  { name:'Diplomatic Summit', effect:'No attacks allowed first action', impact: e => { e.peaceTurn = true; } },
+  { name:'Refugee Crisis', effect:'Border territories get -1 defense die', impact: e => { e.borderWeakness = true; } },
+  { name:'Economic Boom', effect:'All players gain +2 GDP', impact: e => { e.gdpBonus = 2; } },
+  { name:'Nuclear Scare', effect:'All players lose 1 territory troop as deterrent', impact: e => { e.nuclearFear = true; } },
+  { name:'Tech Breakthrough', effect:'Cheapest tech unlocked free for all', impact: e => { e.freeTech = true; } },
+];
+
+const TECH_TREE = [
+  { id:0, name:'Drones', cost:3, effect:'+1 attack die when attacking', category:'military', emoji:'🛸' },
+  { id:1, name:'Satellites', cost:4, effect:'See enemy troop counts', category:'intel', emoji:'🛰️' },
+  { id:2, name:'Cyber Defense', cost:3, effect:'Immune to 1 cyber op per turn', category:'cyber', emoji:'🛡️' },
+  { id:3, name:'Supply Chain', cost:3, effect:'+1 GDP per continent held', category:'economy', emoji:'🏭' },
+  { id:4, name:'Stealth Units', cost:5, effect:'Can move through enemy territory once', category:'military', emoji:'👥' },
+  { id:5, name:'Nukes', cost:7, effect:'Remove 3 enemy troops from 1 territory (1 use)', category:'military', emoji:'☢️' },
+  { id:6, name:'AI Warfare', cost:6, effect:'+1 to all dice rolls', category:'military', emoji:'🤖' },
+  { id:7, name:'Quantum Crypto', cost:4, effect:'Cyber ops do double damage', category:'cyber', emoji:'🔐' },
+];
+
+const CYBER_OPS = [
+  { id:0, name:'Grid Attack', cost:2, effect:'Target loses 1 GDP next turn', desc:'Disrupt power infrastructure' },
+  { id:1, name:'Troop Jamming', cost:3, effect:'Target cannot reinforce 1 territory', desc:'Block enemy reinforcements' },
+  { id:2, name:'Intel Hack', cost:2, effect:'See target\'s tech tree & resources', desc:'Steal enemy intelligence' },
+  { id:3, name:'Propaganda', cost:3, effect:'Target territory\'s troops -1 defense', desc:'Undermine enemy morale' },
+];
+
+// ============================================================
+// GAME STATE
+// ============================================================
+
+let G = {
+  phase: 0, // 0=economy,1=diplomacy,2=tech,3=cyber,4=deploy,5=attack,6=move
+  phaseNames: ['Economy','Diplomacy','Tech','Cyber Ops','Deploy','Attack','Fortify'],
+  round: 1,
+  currentPlayer: 0,
+  playerCount: 4,
+  humanFaction: 0,
+  players: [],
+  territories: [],
+  treaties: [],
+  currentEvent: null,
+  eventDeck: [],
+  selectedTerritory: null,
+  attackSource: null,
+  troopsToDeploy: 0,
+  log: [],
+  cyberApplied: {},
+};
+
+// ============================================================
+// SETUP
+// ============================================================
+
+let selectedFaction = 0;
+let selectedPlayerCount = 4;
+
+function buildSetupScreen() {
+  const fc = document.getElementById('faction-cards');
+  fc.innerHTML = FACTIONS.map(f => `
+    <div class="ps-card ${f.id===0?'selected':''}" onclick="selectFaction(${f.id})" id="faction-card-${f.id}">
+      <div class="ps-flag">${f.flag}</div>
+      <div class="ps-name" style="color:${f.color}">${f.name}</div>
+      <div style="font-size:12px;font-weight:600;color:var(--muted);margin-top:2px">${f.ability}</div>
+      <div class="ps-ability">${f.abilityDesc}</div>
+    </div>
+  `).join('');
+}
+
+function selectFaction(id) {
+  selectedFaction = id;
+  document.querySelectorAll('.ps-card').forEach(c => c.classList.remove('selected'));
+  document.getElementById('faction-card-'+id).classList.add('selected');
+}
+
+function setPlayerCount(n) {
+  selectedPlayerCount = n;
+  document.querySelectorAll('.count-btn').forEach(b => {
+    b.classList.toggle('active', parseInt(b.dataset.n) === n);
+  });
+}
+
+function startGame() {
+  G.playerCount = selectedPlayerCount;
+  G.humanFaction = selectedFaction;
+
+  // Build player objects
+  const factionOrder = [selectedFaction];
+  const others = [0,1,2,3,4].filter(i=>i!==selectedFaction);
+  shuffle(others);
+  for(let i=0; i<G.playerCount-1; i++) factionOrder.push(others[i]);
+
+  G.players = factionOrder.map((fi,idx) => ({
+    factionId: fi,
+    name: FACTIONS[fi].name,
+    color: FACTIONS[fi].color,
+    flag: FACTIONS[fi].flag,
+    isHuman: idx===0,
+    troops: 0,
+    gdp: 5,
+    cyber: 3,
+    tech: [],
+    nukesUsed: 0,
+    cyberDefenseUsed: 0,
+  }));
+
+  // Init territories
+  G.territories = TERRITORIES.map(t => ({ ...t, owner: -1, troops: 0, cyber: false }));
+
+  // Distribute territories
+  const tids = shuffle([...Array(TERRITORIES.length).keys()]);
+  tids.forEach((tid, i) => {
+    const owner = i % G.playerCount;
+    G.territories[tid].owner = owner;
+    G.territories[tid].troops = 2;
+  });
+
+  // Give starting troops
+  G.players.forEach((p,pi) => {
+    const owned = G.territories.filter(t=>t.owner===pi).length;
+    p.troops = Math.max(0, owned * 1); // extra starting troops
+  });
+
+  // Event deck
+  G.eventDeck = shuffle([...WORLD_EVENTS]);
+
+  document.getElementById('setup-screen').style.display = 'none';
+  initUI();
+  drawMap();
+  startEconomyPhase();
+}
+
+// ============================================================
+// TURN ENGINE
+// ============================================================
+
+function startEconomyPhase() {
+  G.phase = 0;
+  G.selectedTerritory = null;
+  G.attackSource = null;
+
+  // Draw world event
+  if(G.eventDeck.length === 0) G.eventDeck = shuffle([...WORLD_EVENTS]);
+  G.currentEvent = G.eventDeck.pop();
+  document.getElementById('event-section').style.display = '';
+
+  // Calculate income
+  const p = currentPlayer();
+  let troops = 3;
+  let gdp = 5;
+  let cyber = 2;
+
+  // Continent bonuses
+  CONTINENT_BONUS.forEach((bonus, ci) => {
+    const owned = G.territories.filter(t=>t.continent===ci && t.owner===G.currentPlayer);
+    if(owned.length === TERRITORIES.filter(t=>t.continent===ci).length) troops += bonus;
+  });
+
+  // Territory count
+  const ownedCount = G.territories.filter(t=>t.owner===G.currentPlayer).length;
+  troops += Math.floor(ownedCount / 3);
+
+  // Faction bonuses
+  const f = FACTIONS[p.factionId];
+  if(f.militaryBonus) troops += 2;
+  if(f.economyBonus) gdp += 2;
+  if(f.cyberBonus) cyber += 2;
+
+  // Tech bonuses
+  if(p.tech.includes(3)) gdp += CONTINENT_BONUS.filter((_,ci)=>G.territories.some(t=>t.continent===ci&&t.owner===G.currentPlayer)).length;
+
+  // Event effects
+  if(G.currentEvent) {
+    const ev = {};
+    G.currentEvent.impact(ev);
+    if(ev.troopBonus) troops += ev.troopBonus;
+    if(ev.gdpBonus) gdp += ev.gdpBonus;
+    if(ev.gdpPenalty) gdp -= ev.gdpPenalty;
+    if(ev.cyberBonus) cyber += ev.cyberBonus;
+  }
+
+  p.troops += Math.max(1, troops);
+  p.gdp += Math.max(0, gdp);
+  p.cyber += Math.max(0, cyber);
+
+  G.troopsToDeploy = p.troops;
+
+  addLog(`<span class="le-turn">[R${G.round}] ${p.flag} ${p.name}</span> collects +${troops} troops, +${gdp} GDP, +${cyber} cyber`);
+  if(G.currentEvent) addLog(`<span class="le-event">⚡ EVENT: ${G.currentEvent.name}</span>`);
+
+  updateUI();
+  setHint('Economy phase — resources collected. Click Next Phase when ready.');
+}
+
+function advancePhase() {
+  if(G.phase === 0) { startDiploPhase(); }
+  else if(G.phase === 1) { startTechPhase(); }
+  else if(G.phase === 2) { startCyberPhase(); }
+  else if(G.phase === 3) { startDeployPhase(); }
+  else if(G.phase === 4) { startAttackPhase(); }
+  else if(G.phase === 5) { startMovePhase(); }
+  else if(G.phase === 6) { endTurn(); }
+}
+
+function startDiploPhase() {
+  G.phase = 1;
+  G.selectedTerritory = null;
+  updateUI();
+  if(currentPlayer().isHuman) {
+    setHint('Diplomacy — offer or view treaties. Click Next Phase to skip.');
+    showDiploModal();
+  } else {
+    // AI: randomly form a treaty
+    aiDiplomacy();
+    setTimeout(advancePhase, 600);
+  }
+}
+
+function startTechPhase() {
+  G.phase = 2;
+  G.selectedTerritory = null;
+  updateUI();
+  setHint('Tech phase — click a tech to unlock it with GDP. Next Phase when done.');
+  if(!currentPlayer().isHuman) {
+    aiTech();
+    setTimeout(advancePhase, 600);
+  }
+}
+
+function startCyberPhase() {
+  G.phase = 3;
+  document.getElementById('cyber-section').style.display = '';
+  updateUI();
+  setHint('Cyber Ops — spend cyber points to disrupt enemies. Next Phase when done.');
+  if(!currentPlayer().isHuman) {
+    aiCyber();
+    setTimeout(advancePhase, 600);
+  }
+}
+
+function startDeployPhase() {
+  G.phase = 4;
+  G.selectedTerritory = null;
+  document.getElementById('cyber-section').style.display = 'none';
+  updateUI();
+  const p = currentPlayer();
+  if(p.troops > 0 && p.isHuman) {
+    setHint(`Deploy ${p.troops} troops — click your territories to place them.`);
+  } else if(!p.isHuman) {
+    aiDeploy();
+    setTimeout(advancePhase, 800);
+  } else {
+    advancePhase();
+  }
+}
+
+function startAttackPhase() {
+  G.phase = 5;
+  G.attackSource = null;
+  G.selectedTerritory = null;
+  updateUI();
+  drawMap();
+  if(currentPlayer().isHuman) {
+    setHint('Attack — click one of YOUR territories, then click an adjacent enemy to attack.');
+  } else {
+    aiAttack();
+  }
+}
+
+function startMovePhase() {
+  G.phase = 6;
+  G.selectedTerritory = null;
+  G.attackSource = null;
+  updateUI();
+  drawMap();
+  if(currentPlayer().isHuman) {
+    setHint('Fortify — click your territory, then an adjacent friendly territory to move troops.');
+  } else {
+    setTimeout(endTurn, 400);
+  }
+}
+
+function endTurn() {
+  G.currentPlayer = (G.currentPlayer + 1) % G.playerCount;
+  if(G.currentPlayer === 0) G.round++;
+
+  // Check win
+  const aliveOwners = new Set(G.territories.map(t=>t.owner));
+  if(aliveOwners.size === 1) {
+    const winner = G.players[G.currentPlayer];
+    showWinner(winner);
+    return;
+  }
+
+  // Check if current player is eliminated
+  const alive = G.territories.some(t=>t.owner===G.currentPlayer);
+  if(!alive) {
+    G.currentPlayer = (G.currentPlayer + 1) % G.playerCount;
+  }
+
+  G.cyberApplied = {};
+  document.getElementById('cyber-section').style.display = 'none';
+  startEconomyPhase();
+  drawMap();
+}
+
+// ============================================================
+// TERRITORY INTERACTION
+// ============================================================
+
+function onTerritoryClick(tid) {
+  const t = G.territories[tid];
+  const p = currentPlayer();
+
+  if(!p.isHuman) return;
+
+  if(G.phase === 4) {
+    // Deploy
+    if(t.owner === G.currentPlayer && p.troops > 0) {
+      t.troops++;
+      p.troops--;
+      addLog(`Deployed 1 troop to ${t.name} (${p.troops} left)`);
+      updateUI();
+      drawMap();
+      if(p.troops === 0) setHint('All troops deployed. Click Next Phase.');
+    }
+  } else if(G.phase === 5) {
+    // Attack
+    if(G.attackSource === null) {
+      if(t.owner === G.currentPlayer && t.troops > 1) {
+        G.attackSource = tid;
+        G.selectedTerritory = tid;
+        setHint(`Attacking from ${t.name} — click adjacent enemy territory.`);
+        drawMap();
+      }
+    } else {
+      const src = G.territories[G.attackSource];
+      if(tid === G.attackSource) {
+        G.attackSource = null; G.selectedTerritory = null;
+        setHint('Select your territory to attack from.'); drawMap(); return;
+      }
+      if(t.owner !== G.currentPlayer && ADJACENCY[G.attackSource].includes(tid)) {
+        doCombat(G.attackSource, tid);
+      } else if(t.owner === G.currentPlayer && t.troops > 1) {
+        G.attackSource = tid; G.selectedTerritory = tid;
+        setHint(`Attacking from ${t.name} — click adjacent enemy territory.`);
+        drawMap();
+      }
+    }
+  } else if(G.phase === 6) {
+    // Fortify
+    if(G.selectedTerritory === null) {
+      if(t.owner === G.currentPlayer && t.troops > 1) {
+        G.selectedTerritory = tid;
+        setHint(`Moving from ${t.name} — click adjacent friendly territory.`);
+        drawMap();
+      }
+    } else {
+      const src = G.territories[G.selectedTerritory];
+      if(t.owner === G.currentPlayer && ADJACENCY[G.selectedTerritory].includes(tid) && tid !== G.selectedTerritory) {
+        const move = Math.floor((src.troops - 1));
+        if(move > 0) {
+          src.troops -= move; t.troops += move;
+          addLog(`Fortified: moved ${move} troops from ${src.name} → ${t.name}`);
+        }
+        G.selectedTerritory = null;
+        drawMap(); updateUI();
+        setHint('Fortify complete. Click Next Phase to end turn.');
+      } else {
+        G.selectedTerritory = (t.owner === G.currentPlayer && t.troops > 1) ? tid : null;
+        drawMap();
+      }
+    }
+  } else {
+    G.selectedTerritory = tid;
+    drawMap();
+  }
+}
+
+// ============================================================
+// COMBAT
+// ============================================================
+
+function doCombat(srcId, defId) {
+  const attacker = G.territories[srcId];
+  const defender = G.territories[defId];
+  const atkPlayer = G.players[attacker.owner];
+  const defPlayer = G.players[defender.owner];
+
+  let atkDice = Math.min(3, attacker.troops - 1);
+  let defDice = Math.min(2, defender.troops);
+
+  // Tech bonuses
+  if(atkPlayer.tech.includes(0)) atkDice = Math.min(atkDice + 1, 4); // drones
+  if(atkPlayer.tech.includes(6)) atkDice = Math.min(atkDice + 1, 4); // AI
+
+  // Cyber debuffs
+  if(G.cyberApplied[defId] && G.cyberApplied[defId].propaganda) defDice = Math.max(1, defDice - 1);
+
+  const atkRolls = rollDice(atkDice).sort((a,b)=>b-a);
+  const defRolls = rollDice(defDice).sort((a,b)=>b-a);
+
+  let atkLoss = 0, defLoss = 0;
+  const pairs = Math.min(atkRolls.length, defRolls.length);
+  for(let i=0; i<pairs; i++) {
+    if(atkRolls[i] > defRolls[i]) defLoss++;
+    else atkLoss++;
+  }
+
+  // AI warfare tech gives +1
+  if(atkPlayer.tech.includes(6)) { defLoss = Math.min(defLoss + 1, defender.troops); }
+
+  attacker.troops -= atkLoss;
+  defender.troops -= defLoss;
+
+  let conquered = false;
+  if(defender.troops <= 0) {
+    defender.owner = attacker.owner;
+    defender.troops = Math.min(3, attacker.troops - 1);
+    attacker.troops -= defender.troops;
+    if(attacker.troops < 1) attacker.troops = 1;
+    conquered = true;
+    addLog(`<span class="le-combat">⚔️ ${atkPlayer.flag} ${attacker.name} → ${defender.name}: CONQUERED! (atk-${atkLoss} def-${defLoss})</span>`);
+  } else {
+    addLog(`<span class="le-combat">⚔️ ${attacker.name}→${defender.name}: atk-${atkLoss} def-${defLoss}</span>`);
+  }
+
+  showCombatModal(atkRolls, defRolls, atkLoss, defLoss, conquered, attacker.name, defender.name, defPlayer);
+  checkWin();
+  drawMap();
+  updateUI();
+  G.attackSource = null;
+  G.selectedTerritory = null;
+}
+
+function rollDice(n) {
+  return Array.from({length:n}, () => Math.ceil(Math.random()*6));
+}
+
+function showCombatModal(atkRolls, defRolls, atkLoss, defLoss, conquered, srcName, defName, defPlayer) {
+  const content = `
+    <h2>⚔️ Combat Result</h2>
+    <div class="modal-body">
+      <strong>${srcName}</strong> attacked <strong>${defName}</strong> (${defPlayer.flag} ${defPlayer.name})
+    </div>
+    <div style="display:flex;gap:16px;margin-bottom:12px">
+      <div>
+        <div style="font-family:var(--font-mono);font-size:10px;color:var(--muted);margin-bottom:6px">ATTACKER DICE</div>
+        <div class="dice-row">${atkRolls.map(r=>`<div class="die atk">${r}</div>`).join('')}</div>
+      </div>
+      <div>
+        <div style="font-family:var(--font-mono);font-size:10px;color:var(--muted);margin-bottom:6px">DEFENDER DICE</div>
+        <div class="dice-row">${defRolls.map(r=>`<div class="die def">${r}</div>`).join('')}</div>
+      </div>
+    </div>
+    <div class="result-row">
+      <span>Attacker losses: <strong style="color:var(--danger)">${atkLoss}</strong></span>
+      <span>Defender losses: <strong style="color:var(--accent3)">${defLoss}</strong></span>
+    </div>
+    ${conquered ? `<div style="text-align:center;margin-top:12px;font-family:var(--font-display);font-size:16px;color:var(--accent3);font-weight:700">TERRITORY CONQUERED!</div>` : ''}
+    <div class="modal-btns" style="margin-top:16px">
+      <button class="btn primary" onclick="closeModal()">Continue</button>
+    </div>
+  `;
+  showModal(content);
+}
+
+// ============================================================
+// DIPLOMACY
+// ============================================================
+
+function showDiploModal() {
+  const p = currentPlayer();
+  const options = G.players.map((other, pi) => {
+    if(pi === G.currentPlayer) return '';
+    const existing = G.treaties.find(t => (t.a===G.currentPlayer&&t.b===pi)||(t.a===pi&&t.b===G.currentPlayer));
+    if(existing) return `
+      <div class="treaty-item">
+        <div class="treaty-dot" style="background:${other.color}"></div>
+        <span>${other.flag} ${other.name}</span>
+        <span class="treaty-badge treaty-${existing.type}">${existing.type.toUpperCase()} (${existing.rounds}r left)</span>
+        <button class="btn danger" style="padding:2px 8px;font-size:11px" onclick="breakTreaty(${pi});closeModal()">Break</button>
+      </div>`;
+    return `
+      <div class="treaty-item">
+        <div class="treaty-dot" style="background:${other.color}"></div>
+        <span>${other.flag} ${other.name}</span>
+        <button class="btn" style="padding:2px 8px;font-size:11px" onclick="proposeTreaty(${pi},'nap');closeModal()">NAP</button>
+        <button class="btn" style="padding:2px 8px;font-size:11px;border-color:var(--accent2);color:var(--accent2)" onclick="proposeTreaty(${pi},'trade');closeModal()">Trade</button>
+      </div>`;
+  }).join('');
+
+  showModal(`
+    <h2>🤝 Diplomacy</h2>
+    <div class="modal-body">Form <strong>Non-Aggression Pacts</strong> or <strong>Trade Agreements</strong>. Break them and suffer -2 troops penalty for 2 rounds.</div>
+    ${options || '<div style="color:var(--muted);font-size:13px">No other players</div>'}
+    <div class="modal-btns" style="margin-top:16px">
+      <button class="btn primary" onclick="closeModal();advancePhase()">Done →</button>
+    </div>
+  `);
+}
+
+function proposeTreaty(targetPlayer, type) {
+  const rounds = (currentPlayer().tech.includes && FACTIONS[currentPlayer().factionId].diploBonus) ? 4 : 3;
+  // Remove existing
+  G.treaties = G.treaties.filter(t => !((t.a===G.currentPlayer&&t.b===targetPlayer)||(t.a===targetPlayer&&t.b===G.currentPlayer)));
+  G.treaties.push({ a: G.currentPlayer, b: targetPlayer, type, rounds });
+  const other = G.players[targetPlayer];
+  addLog(`<span class="le-diplo">🤝 ${currentPlayer().flag} ${currentPlayer().name} & ${other.flag} ${other.name}: ${type.toUpperCase()} treaty (${rounds} rounds)</span>`);
+  updateDiploDisplay();
+}
+
+function breakTreaty(targetPlayer) {
+  G.treaties = G.treaties.filter(t => !((t.a===G.currentPlayer&&t.b===targetPlayer)||(t.a===targetPlayer&&t.b===G.currentPlayer)));
+  // Penalty: -2 troops for current player
+  currentPlayer().troops = Math.max(0, currentPlayer().troops - 2);
+  addLog(`<span class="le-diplo">💔 ${currentPlayer().name} broke treaty — -2 troops penalty</span>`);
+  updateDiploDisplay();
+}
+
+function aiDiplomacy() {
+  // AI randomly forms NAP with someone
+  const allies = G.players.map((_,i)=>i).filter(i=>i!==G.currentPlayer);
+  if(allies.length && Math.random() < 0.4) {
+    const target = allies[Math.floor(Math.random()*allies.length)];
+    proposeTreaty(target, 'nap');
+  }
+}
+
+// ============================================================
+// TECH
+// ============================================================
+
+function buyTech(techId) {
+  const p = currentPlayer();
+  if(!p.isHuman) return;
+  const tech = TECH_TREE[techId];
+  let cost = tech.cost;
+  if(FACTIONS[p.factionId].techBonus) cost = Math.max(1, cost-1);
+  if(p.tech.includes(techId)) { notify('Already unlocked!'); return; }
+  if(p.gdp < cost) { notify(`Not enough GDP (need ${cost})`); return; }
+  p.gdp -= cost;
+  p.tech.push(techId);
+  addLog(`<span class="le-tech">🔬 ${p.name} unlocked ${tech.emoji} ${tech.name}</span>`);
+  updateUI();
+  notify(`${tech.emoji} ${tech.name} unlocked!`);
+}
+
+function aiTech() {
+  const p = G.players[G.currentPlayer];
+  const affordable = TECH_TREE.filter(t => !p.tech.includes(t.id) && p.gdp >= t.cost);
+  if(affordable.length && Math.random() < 0.5) {
+    const pick = affordable[Math.floor(Math.random()*affordable.length)];
+    p.gdp -= pick.cost;
+    p.tech.push(pick.id);
+    addLog(`<span class="le-tech">🔬 ${p.name} unlocked ${pick.emoji} ${pick.name}</span>`);
+  }
+}
+
+// ============================================================
+// CYBER
+// ============================================================
+
+function doCyberOp(opId) {
+  const p = currentPlayer();
+  const op = CYBER_OPS[opId];
+  let cost = op.cost;
+  if(FACTIONS[p.factionId].cyberBonus) cost = Math.max(1, cost-1);
+  if(p.cyber < cost) { notify(`Need ${cost} cyber points`); return; }
+
+  // Pick target (human picks via alert for now, AI auto)
+  const enemies = G.players.map((_,i)=>i).filter(i=>i!==G.currentPlayer);
+  if(!enemies.length) return;
+
+  // For human: simple prompt
+  const targetIdx = enemies[0]; // simplified: target first enemy
+  const target = G.players[targetIdx];
+  p.cyber -= cost;
+
+  if(op.id === 0) target.gdp = Math.max(0, target.gdp-2);
+  if(op.id === 1) {
+    // Mark a random territory of target
+    const tts = G.territories.filter(t=>t.owner===targetIdx);
+    if(tts.length) { G.cyberApplied[tts[0].id] = { jammed: true }; }
+  }
+  if(op.id === 3) {
+    const tts = G.territories.filter(t=>t.owner===targetIdx);
+    if(tts.length) { const tid = tts[Math.floor(Math.random()*tts.length)].id; G.cyberApplied[tid] = { ...(G.cyberApplied[tid]||{}), propaganda: true }; }
+  }
+
+  addLog(`<span class="le-tech">⚡ CYBER: ${p.name} → ${target.name}: ${op.name}</span>`);
+  notify(`${op.name} launched against ${target.flag} ${target.name}`);
+  updateUI();
+}
+
+function aiCyber() {
+  const p = G.players[G.currentPlayer];
+  if(p.cyber >= 2 && Math.random() < 0.4) {
+    const enemies = G.players.map((_,i)=>i).filter(i=>i!==G.currentPlayer&&G.territories.some(t=>t.owner===i));
+    if(enemies.length) {
+      const target = G.players[enemies[Math.floor(Math.random()*enemies.length)]];
+      target.gdp = Math.max(0, target.gdp - 1);
+      p.cyber -= 2;
+      addLog(`<span class="le-tech">⚡ CYBER: ${p.name} → ${target.name}: Grid Attack</span>`);
+    }
+  }
+}
+
+// ============================================================
+// AI DEPLOY & ATTACK
+// ============================================================
+
+function aiDeploy() {
+  const p = G.players[G.currentPlayer];
+  const myTerritories = G.territories.filter(t=>t.owner===G.currentPlayer);
+  while(p.troops > 0 && myTerritories.length) {
+    // Deploy to weakest border territory
+    const border = myTerritories.filter(t => ADJACENCY[t.id].some(a => G.territories[a].owner !== G.currentPlayer));
+    const target = border.length ? border.sort((a,b)=>a.troops-b.troops)[0] : myTerritories[0];
+    target.troops++;
+    p.troops--;
+  }
+  drawMap(); updateUI();
+}
+
+function aiAttack() {
+  const p = G.players[G.currentPlayer];
+  let attacked = false;
+
+  // Find best attack
+  const myT = G.territories.filter(t=>t.owner===G.currentPlayer&&t.troops>2);
+  for(const src of myT.sort((a,b)=>b.troops-a.troops)) {
+    const targets = ADJACENCY[src.id].filter(a => G.territories[a].owner !== G.currentPlayer && G.territories[a].troops < src.troops - 1);
+    if(targets.length) {
+      const def = G.territories[targets[0]];
+      // Check treaty
+      const treaty = G.treaties.find(t=>(t.a===G.currentPlayer&&t.b===def.owner)||(t.b===G.currentPlayer&&t.a===def.owner));
+      if(treaty && treaty.type==='nap') continue;
+      doCombat(src.id, targets[0]);
+      attacked = true;
+      break;
+    }
+  }
+  setTimeout(() => {
+    closeModal();
+    startMovePhase();
+  }, 1200);
+}
+
+// ============================================================
+// DRAW MAP
+// ============================================================
+
+function drawMap() {
+  const svg = document.getElementById('map-svg');
+  // Keep static labels
+  const existingLabels = svg.querySelectorAll('.continent-label');
+
+  // Remove old territories
+  svg.querySelectorAll('.territory-group').forEach(e=>e.remove());
+
+  const r = 22;
+  G.territories.forEach(t => {
+    const owner = t.owner >= 0 ? G.players[t.owner] : null;
+    const color = owner ? owner.color : '#334155';
+    const isSelected = G.selectedTerritory === t.id || G.attackSource === t.id;
+    const isAttackable = G.phase===5 && G.attackSource!==null && ADJACENCY[G.attackSource].includes(t.id) && t.owner !== G.currentPlayer;
+    const isMovable = G.phase===6 && G.selectedTerritory!==null && ADJACENCY[G.selectedTerritory].includes(t.id) && t.owner === G.currentPlayer;
+
+    const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('class','territory-group');
+
+    // Territory circle
+    const circle = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    circle.setAttribute('cx', t.cx);
+    circle.setAttribute('cy', t.cy);
+    circle.setAttribute('r', r);
+    circle.setAttribute('fill', color);
+    circle.setAttribute('fill-opacity', '0.75');
+    circle.setAttribute('stroke', isSelected ? '#fff' : isAttackable ? '#fc8181' : isMovable ? '#68d391' : 'rgba(255,255,255,0.2)');
+    circle.setAttribute('stroke-width', isSelected ? '3' : isAttackable||isMovable ? '2.5' : '1');
+    circle.setAttribute('class', 'territory');
+    if(isAttackable) circle.setAttribute('style','animation:pulse-red 1s infinite');
+    if(isMovable) circle.setAttribute('style','animation:pulse-green 1s infinite');
+    circle.addEventListener('click', () => onTerritoryClick(t.id));
+
+    g.appendChild(circle);
+
+    // Troop count
+    const troopText = document.createElementNS('http://www.w3.org/2000/svg','text');
+    troopText.setAttribute('x', t.cx);
+    troopText.setAttribute('y', t.cy - 3);
+    troopText.setAttribute('class','t-troops');
+    troopText.textContent = t.troops;
+    g.appendChild(troopText);
+
+    // Territory name
+    const nameText = document.createElementNS('http://www.w3.org/2000/svg','text');
+    nameText.setAttribute('x', t.cx);
+    nameText.setAttribute('y', t.cy + 12);
+    nameText.setAttribute('class','t-label');
+    nameText.textContent = t.name.length > 8 ? t.name.substring(0,7)+'.' : t.name;
+    g.appendChild(nameText);
+
+    // Cyber indicator
+    if(G.cyberApplied[t.id]) {
+      const cyberDot = document.createElementNS('http://www.w3.org/2000/svg','circle');
+      cyberDot.setAttribute('cx', t.cx + r - 5);
+      cyberDot.setAttribute('cy', t.cy - r + 5);
+      cyberDot.setAttribute('r', 5);
+      cyberDot.setAttribute('fill', '#b794f4');
+      g.appendChild(cyberDot);
+    }
+
+    // Tech: nukes indicator
+    if(owner && G.players.indexOf(owner)===t.owner && owner.tech.includes(5)) {
+      const nukeDot = document.createElementNS('http://www.w3.org/2000/svg','text');
+      nukeDot.setAttribute('x', t.cx - r + 6);
+      nukeDot.setAttribute('y', t.cy - r + 8);
+      nukeDot.setAttribute('class','t-icon');
+      nukeDot.textContent = '☢';
+      g.appendChild(nukeDot);
+    }
+
+    svg.appendChild(g);
+  });
+}
+
+// ============================================================
+// UI
+// ============================================================
+
+function initUI() {
+  drawPhaseSteps();
+  updateFactionsOverview();
+}
+
+function drawPhaseSteps() {
+  const steps = document.getElementById('phase-steps');
+  steps.innerHTML = G.phaseNames.map((_,i)=>`<div class="ps" id="ps-${i}"></div>`).join('');
+}
+
+function updateUI() {
+  const p = currentPlayer();
+
+  // Topbar
+  document.getElementById('round-num').textContent = G.round;
+  document.getElementById('cur-player-name').textContent = `${p.flag} ${p.name}`;
+  document.getElementById('phase-badge').textContent = G.phaseNames[G.phase];
+
+  // Resources
+  document.getElementById('res-troops').textContent = p.troops;
+  document.getElementById('res-gdp').textContent = p.gdp;
+  document.getElementById('res-cyber').textContent = p.cyber;
+
+  // Phase steps
+  G.phaseNames.forEach((_,i) => {
+    const el = document.getElementById('ps-'+i);
+    if(!el) return;
+    el.className = 'ps ' + (i < G.phase ? 'done' : i===G.phase ? 'active' : '');
+  });
+
+  // Event
+  if(G.currentEvent) {
+    document.getElementById('event-display').innerHTML = `<div class="event-name">${G.currentEvent.name}</div><div class="event-desc">${G.currentEvent.effect}</div>`;
+  }
+
+  // Tech
+  updateTechDisplay();
+
+  // Cyber ops
+  updateCyberDisplay();
+
+  // Diplomacy
+  updateDiploDisplay();
+
+  // Factions
+  updateFactionsOverview();
+
+  // Phase button
+  const phaseBtn = document.getElementById('phase-btn');
+  const phaseNames = ['Skip Economy','Skip Diplomacy','Skip Tech','Skip Cyber','Done Deploying','End Attacks','End Turn'];
+  phaseBtn.textContent = (phaseNames[G.phase] || 'Next Phase') + ' →';
+
+  // Tick treaties
+  G.treaties = G.treaties.map(t=>({...t,rounds:t.rounds-0})).filter(t=>t.rounds>0);
+}
+
+function updateTechDisplay() {
+  const p = currentPlayer();
+  const grid = document.getElementById('tech-display');
+  grid.innerHTML = TECH_TREE.map(t => {
+    let cost = t.cost;
+    if(FACTIONS[p.factionId].techBonus) cost = Math.max(1,cost-1);
+    const unlocked = p.tech.includes(t.id);
+    const affordable = !unlocked && p.gdp >= cost && G.phase===2 && p.isHuman;
+    return `<div class="tech-item ${unlocked?'unlocked':affordable?'affordable':''}" onclick="${affordable?`buyTech(${t.id})`:''}" title="${t.effect}">
+      <div class="tech-name">${t.emoji} ${t.name}</div>
+      <div class="tech-cost">${unlocked?'✓ UNLOCKED':`${cost} GDP`}</div>
+      <div class="tech-effect">${t.effect}</div>
+    </div>`;
+  }).join('');
+}
+
+function updateCyberDisplay() {
+  const p = currentPlayer();
+  document.getElementById('cyber-display').innerHTML = CYBER_OPS.map(op => {
+    let cost = op.cost;
+    if(FACTIONS[p.factionId].cyberBonus) cost = Math.max(1,cost-1);
+    return `<div class="cyber-op" onclick="doCyberOp(${op.id})">
+      <div>
+        <div class="cyber-op-name">${op.name}</div>
+        <div class="cyber-op-desc">${op.desc}</div>
+        <div style="font-size:11px;color:var(--accent3);margin-top:2px">${op.effect}</div>
+      </div>
+      <div class="cyber-cost">${cost}⚡</div>
+    </div>`;
+  }).join('');
+}
+
+function updateDiploDisplay() {
+  const diploEl = document.getElementById('diplo-display');
+  if(!G.treaties.length) {
+    diploEl.innerHTML = '<div style="font-size:12px;color:var(--muted)">No active treaties</div>';
+    return;
+  }
+  diploEl.innerHTML = G.treaties.map(tr => {
+    const pa = G.players[tr.a], pb = G.players[tr.b];
+    return `<div class="treaty-item">
+      <div class="treaty-dot" style="background:${pa.color}"></div>
+      <div class="treaty-dot" style="background:${pb.color}"></div>
+      <span style="font-size:12px">${pa.flag}${pb.flag}</span>
+      <span class="treaty-badge treaty-${tr.type}">${tr.type.toUpperCase()}</span>
+      <span style="font-family:var(--font-mono);font-size:10px;color:var(--muted);margin-left:auto">${tr.rounds}r</span>
+    </div>`;
+  }).join('');
+}
+
+function updateFactionsOverview() {
+  const el = document.getElementById('factions-overview');
+  el.innerHTML = G.players.map((p,pi) => {
+    const territories = G.territories.filter(t=>t.owner===pi).length;
+    const isCurrent = pi === G.currentPlayer;
+    return `<div class="faction-strip ${isCurrent?'current-player':''}">
+      <div class="faction-dot" style="background:${p.color}"></div>
+      <div class="faction-name" style="color:${p.color}">${p.flag} ${p.name}</div>
+      <div class="faction-stats">T:<span>${territories}</span> G:<span>${p.gdp}</span></div>
+    </div>`;
+  }).join('');
+}
+
+function addLog(msg) {
+  G.log.unshift(msg);
+  const logEl = document.getElementById('log');
+  logEl.innerHTML = G.log.slice(0,60).map(l=>`<div class="log-entry">${l}</div>`).join('');
+}
+
+function setHint(msg) {
+  document.getElementById('action-hint').textContent = msg;
+}
+
+function showModal(html) {
+  document.getElementById('modal-content').innerHTML = html;
+  document.getElementById('modal').style.display = 'flex';
+}
+
+function closeModal() {
+  document.getElementById('modal').style.display = 'none';
+}
+
+function notify(msg) {
+  const n = document.getElementById('notif');
+  n.textContent = msg;
+  n.classList.add('show');
+  setTimeout(()=>n.classList.remove('show'), 2500);
+}
+
+function checkWin() {
+  const owners = new Set(G.territories.map(t=>t.owner));
+  if(owners.size === 1) {
+    const winner = G.players[[...owners][0]];
+    showWinner(winner);
+  }
+}
+
+function showWinner(winner) {
+  document.getElementById('winner-text').textContent = `${winner.flag} ${winner.name}`;
+  document.getElementById('winner-text').style.color = winner.color;
+  document.getElementById('winner-sub').textContent = 'achieves world domination';
+  document.getElementById('winner-screen').classList.add('show');
+}
+
+// ============================================================
+// UTILS
+// ============================================================
+
+function shuffle(arr) {
+  for(let i=arr.length-1;i>0;i--) {
+    const j=Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]]=[arr[j],arr[i]];
+  }
+  return arr;
+}
+
+function currentPlayer() { return G.players[G.currentPlayer]; }
+
+// ============================================================
+// BOOT
+// ============================================================
+
+buildSetupScreen();
+</script>
+</body>
+</html>
