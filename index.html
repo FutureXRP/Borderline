@@ -6,1318 +6,1288 @@
 <title>Borderline</title>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg: #0a0e1a;
-    --bg2: #111827;
-    --bg3: #1a2236;
-    --border: rgba(99,179,237,0.15);
-    --border2: rgba(99,179,237,0.3);
-    --accent: #63b3ed;
-    --accent2: #f6ad55;
-    --accent3: #68d391;
-    --danger: #fc8181;
-    --text: #e2e8f0;
-    --muted: #718096;
-    --font-main: 'Rajdhani', sans-serif;
-    --font-mono: 'Share Tech Mono', monospace;
-    --font-display: 'Orbitron', sans-serif;
-  }
+:root {
+  --bg:#08101f; --bg2:#0f1c30; --bg3:#162240; --bg4:#1e2d4d;
+  --border:rgba(100,180,255,0.12); --border2:rgba(100,180,255,0.28);
+  --accent:#5bb8ff; --accent2:#f9b44a; --accent3:#5ee89a;
+  --danger:#ff6b6b; --purple:#c084fc;
+  --text:#dde6f5; --muted:#7a93b8;
+  --fn:'Rajdhani',sans-serif; --fm:'Share Tech Mono',monospace; --fd:'Orbitron',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:var(--fn);font-size:16px;min-height:100vh;overflow:hidden;}
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+/* ── LAYOUT ── */
+#shell{display:grid;grid-template-rows:60px 1fr;grid-template-columns:1fr 360px;height:100vh;}
+#topbar{grid-column:1/-1;background:var(--bg2);border-bottom:1px solid var(--border2);display:flex;align-items:center;padding:0 20px;gap:16px;flex-shrink:0;}
+#map-wrap{overflow:hidden;position:relative;background:var(--bg);}
+#sidebar{background:var(--bg2);border-left:1px solid var(--border2);display:flex;flex-direction:column;overflow:hidden;}
 
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--font-main);
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
+/* ── TOPBAR ── */
+.logo{font-family:var(--fd);font-size:18px;font-weight:900;letter-spacing:.12em;color:var(--accent);white-space:nowrap;}
+.logo em{color:var(--accent2);font-style:normal;}
+#turn-label{font-family:var(--fm);font-size:14px;color:var(--muted);}
+#turn-label strong{color:var(--text);font-size:15px;}
+#phase-pill{font-family:var(--fm);font-size:12px;padding:5px 14px;border-radius:3px;background:var(--bg3);border:1px solid var(--border2);color:var(--accent);letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;}
+#hint-text{font-size:14px;color:var(--accent2);flex:1;text-align:center;}
+.tbtn{font-family:var(--fn);font-size:15px;font-weight:700;padding:8px 20px;border-radius:3px;border:1px solid var(--border2);background:transparent;color:var(--accent);cursor:pointer;letter-spacing:.04em;white-space:nowrap;transition:all .15s;}
+.tbtn:hover{background:rgba(91,184,255,.12);}
+.tbtn.go{background:rgba(91,184,255,.18);border-color:var(--accent);}
+.tbtn.go:hover{background:rgba(91,184,255,.28);}
+.tbtn.red{border-color:var(--danger);color:var(--danger);}
+.tbtn.red:hover{background:rgba(255,107,107,.1);}
 
-  /* FACTION COLORS */
-  .f0 { --fc: #63b3ed; --fl: #1a365d; } /* USA - Blue */
-  .f1 { --fc: #fc8181; --fl: #742a2a; } /* Russia - Red */
-  .f2 { --fc: #f6ad55; --fl: #7b341e; } /* China - Amber */
-  .f3 { --fc: #68d391; --fl: #1c4532; } /* EU - Green */
-  .f4 { --fc: #b794f4; --fl: #44337a; } /* India - Purple */
+/* ── MAP ── */
+#world-svg{width:100%;height:100%;}
+.t-region{cursor:pointer;stroke-width:1.2;stroke:#0a1628;transition:filter .15s;}
+.t-region:hover{filter:brightness(1.3);}
+.t-region.sel{stroke:#fff !important;stroke-width:3 !important;filter:brightness(1.5);}
+.t-region.can-atk{stroke:var(--danger) !important;stroke-width:2.5 !important;animation:patk 1s ease-in-out infinite;}
+.t-region.can-mv{stroke:var(--accent3) !important;stroke-width:2.5 !important;animation:pmv 1s ease-in-out infinite;}
+@keyframes patk{0%,100%{stroke-opacity:1}50%{stroke-opacity:.3}}
+@keyframes pmv{0%,100%{stroke-opacity:1}50%{stroke-opacity:.3}}
+.adj-line{stroke:rgba(255,255,255,.08);stroke-width:1;pointer-events:none;}
+.t-pip{pointer-events:none;}
+.t-troop{font-family:var(--fd);font-size:13px;font-weight:700;fill:#fff;text-anchor:middle;dominant-baseline:middle;pointer-events:none;}
+.t-name{font-family:var(--fm);font-size:8px;fill:rgba(255,255,255,.8);text-anchor:middle;dominant-baseline:middle;pointer-events:none;}
+.cont-lbl{font-family:var(--fd);font-size:11px;fill:rgba(255,255,255,.1);letter-spacing:.18em;text-anchor:middle;pointer-events:none;}
 
-  /* LAYOUT */
-  #app { display: grid; grid-template-columns: 1fr 340px; grid-template-rows: 56px 1fr; height: 100vh; }
-  #topbar { grid-column: 1/-1; background: var(--bg2); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 1.5rem; gap: 1.5rem; }
-  #map-area { background: var(--bg); overflow: hidden; position: relative; }
-  #sidebar { background: var(--bg2); border-left: 1px solid var(--border); overflow-y: auto; display: flex; flex-direction: column; }
+/* ── SIDEBAR TABS ── */
+#sb-tabs{display:flex;border-bottom:1px solid var(--border);}
+.sb-tab{flex:1;padding:10px 4px;font-family:var(--fm);font-size:11px;text-align:center;cursor:pointer;color:var(--muted);letter-spacing:.06em;border-bottom:2px solid transparent;transition:all .15s;}
+.sb-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.sb-pane{display:none;flex:1;overflow-y:auto;padding:14px 16px;}
+.sb-pane.active{display:block;}
 
-  /* TOPBAR */
-  .logo { font-family: var(--font-display); font-size: 14px; font-weight: 900; color: var(--accent); letter-spacing: 0.1em; white-space: nowrap; }
-  .logo span { color: var(--accent2); }
-  .turn-info { font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
-  .turn-info strong { color: var(--text); }
-  .phase-badge { font-family: var(--font-mono); font-size: 11px; padding: 3px 10px; border-radius: 2px; background: var(--bg3); border: 1px solid var(--border2); color: var(--accent); letter-spacing: 0.08em; text-transform: uppercase; }
-  .topbar-right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
-  .btn { font-family: var(--font-main); font-size: 13px; font-weight: 600; padding: 6px 16px; border-radius: 2px; border: 1px solid var(--border2); background: transparent; color: var(--accent); cursor: pointer; letter-spacing: 0.05em; transition: all 0.15s; }
-  .btn:hover { background: rgba(99,179,237,0.1); }
-  .btn.primary { background: rgba(99,179,237,0.15); border-color: var(--accent); }
-  .btn.primary:hover { background: rgba(99,179,237,0.25); }
-  .btn.danger { border-color: var(--danger); color: var(--danger); }
-  .btn.danger:hover { background: rgba(252,129,129,0.1); }
+/* ── RESOURCES ── */
+.res-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px;}
+.res-card{background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:10px 6px;text-align:center;}
+.res-val{font-family:var(--fd);font-size:22px;font-weight:700;line-height:1;}
+.res-lbl{font-family:var(--fm);font-size:10px;color:var(--muted);margin-top:4px;letter-spacing:.06em;}
 
-  /* MAP SVG */
-  #map-svg { width: 100%; height: 100%; }
-  .territory { cursor: pointer; transition: opacity 0.15s; stroke-width: 1.5; }
-  .territory:hover { opacity: 0.85; filter: brightness(1.2); }
-  .territory.selected { stroke-width: 3; filter: brightness(1.4); }
-  .territory.attackable { stroke: #fc8181; stroke-width: 2.5; animation: pulse-red 1s infinite; }
-  .territory.movable { stroke: #68d391; stroke-width: 2.5; animation: pulse-green 1s infinite; }
-  @keyframes pulse-red { 0%,100%{stroke-opacity:1} 50%{stroke-opacity:0.4} }
-  @keyframes pulse-green { 0%,100%{stroke-opacity:1} 50%{stroke-opacity:0.4} }
-  .t-label { font-family: var(--font-mono); font-size: 9px; fill: rgba(255,255,255,0.9); pointer-events: none; text-anchor: middle; dominant-baseline: middle; }
-  .t-troops { font-family: var(--font-display); font-size: 11px; font-weight: 700; fill: #fff; pointer-events: none; text-anchor: middle; dominant-baseline: middle; }
-  .t-icon { font-size: 9px; fill: rgba(255,255,255,0.7); pointer-events: none; text-anchor: middle; dominant-baseline: middle; }
-  .continent-label { font-family: var(--font-display); font-size: 10px; fill: rgba(255,255,255,0.15); letter-spacing: 0.15em; text-anchor: middle; pointer-events: none; text-transform: uppercase; }
+/* ── PHASE TRACK ── */
+.phase-track{display:flex;gap:3px;padding:10px 16px;border-bottom:1px solid var(--border);}
+.pt-step{flex:1;height:4px;border-radius:2px;background:var(--bg3);}
+.pt-step.done{background:var(--accent3);}
+.pt-step.active{background:var(--accent);}
 
-  /* SIDEBAR */
-  .sb-section { padding: 14px 16px; border-bottom: 1px solid var(--border); }
-  .sb-title { font-family: var(--font-mono); font-size: 10px; color: var(--muted); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 10px; }
-  .faction-strip { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
-  .faction-strip:last-child { border-bottom: none; }
-  .faction-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-  .faction-name { font-size: 13px; font-weight: 600; flex: 1; }
-  .faction-stats { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
-  .faction-stats span { color: var(--text); }
-  .current-player { background: rgba(99,179,237,0.06); border-radius: 4px; padding: 2px 6px; }
+/* ── PLAYER LIST ── */
+.player-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:15px;}
+.player-row:last-child{border-bottom:none;}
+.p-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;}
+.p-name{font-weight:700;flex:1;}
+.p-stats{font-family:var(--fm);font-size:12px;color:var(--muted);}
+.p-stats span{color:var(--text);}
+.active-player{background:rgba(91,184,255,.06);border-radius:4px;padding:2px 8px;margin:-2px -8px;}
+.elim{opacity:.35;text-decoration:line-through;}
 
-  /* RESOURCE BAR */
-  .res-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 10px; }
-  .res-card { background: var(--bg3); border: 1px solid var(--border); border-radius: 3px; padding: 8px; text-align: center; }
-  .res-icon { font-size: 16px; margin-bottom: 2px; }
-  .res-val { font-family: var(--font-display); font-size: 16px; font-weight: 700; }
-  .res-lbl { font-family: var(--font-mono); font-size: 9px; color: var(--muted); letter-spacing: 0.08em; }
+/* ── CARDS ── */
+.card-hand{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;}
+.risk-card{background:var(--bg3);border:1px solid var(--border2);border-radius:4px;padding:8px 10px;font-size:13px;cursor:pointer;transition:all .15s;min-width:80px;text-align:center;}
+.risk-card:hover{border-color:var(--accent);}
+.risk-card.selected-card{border-color:var(--accent2);background:rgba(249,180,74,.1);}
+.card-icon{font-size:20px;display:block;margin-bottom:3px;}
+.card-type{font-family:var(--fm);font-size:10px;color:var(--muted);}
 
-  /* EVENT CARD */
-  .event-card { background: var(--bg3); border: 1px solid var(--border2); border-radius: 4px; padding: 12px; position: relative; overflow: hidden; }
-  .event-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--accent2); }
-  .event-name { font-size: 14px; font-weight: 700; color: var(--accent2); margin-bottom: 4px; }
-  .event-desc { font-size: 12px; color: var(--muted); line-height: 1.5; }
+/* ── EVENT ── */
+.event-box{background:var(--bg3);border:1px solid var(--border2);border-radius:4px;padding:12px;position:relative;overflow:hidden;margin-bottom:10px;}
+.event-box::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--accent2);}
+.ev-name{font-size:16px;font-weight:700;color:var(--accent2);margin-bottom:5px;}
+.ev-desc{font-size:13px;color:var(--muted);line-height:1.5;}
 
-  /* TECH TREE */
-  .tech-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-  .tech-item { background: var(--bg3); border: 1px solid var(--border); border-radius: 3px; padding: 8px; cursor: pointer; transition: all 0.15s; }
-  .tech-item:hover { border-color: var(--border2); }
-  .tech-item.unlocked { border-color: var(--accent3); background: rgba(104,211,145,0.05); }
-  .tech-item.affordable { border-color: var(--accent); background: rgba(99,179,237,0.05); cursor: pointer; }
-  .tech-name { font-size: 12px; font-weight: 600; }
-  .tech-cost { font-family: var(--font-mono); font-size: 10px; color: var(--muted); }
-  .tech-effect { font-size: 11px; color: var(--muted); margin-top: 3px; }
+/* ── TECH ── */
+.tech-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.tech-item{background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:10px;cursor:pointer;transition:all .15s;}
+.tech-item:hover{border-color:var(--border2);}
+.tech-item.owned{border-color:var(--accent3);background:rgba(94,232,154,.05);}
+.tech-item.buyable{border-color:var(--accent);background:rgba(91,184,255,.05);}
+.tech-em{font-size:20px;display:block;margin-bottom:4px;}
+.tech-name{font-size:14px;font-weight:700;}
+.tech-cost{font-family:var(--fm);font-size:11px;color:var(--muted);}
+.tech-fx{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.4;}
 
-  /* DIPLOMACY */
-  .treaty-item { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
-  .treaty-item:last-child { border-bottom: none; }
-  .treaty-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-  .treaty-badge { font-family: var(--font-mono); font-size: 10px; padding: 2px 6px; border-radius: 2px; margin-left: auto; }
-  .treaty-nap { background: rgba(104,211,145,0.15); color: var(--accent3); }
-  .treaty-war { background: rgba(252,129,129,0.15); color: var(--danger); }
-  .treaty-trade { background: rgba(246,173,85,0.15); color: var(--accent2); }
+/* ── LOG ── */
+#log-list{font-family:var(--fm);font-size:12px;line-height:1.6;}
+.le{padding:4px 0;border-bottom:1px solid rgba(255,255,255,.03);color:var(--muted);}
+.le.ct{color:var(--danger);}
+.le.ev{color:var(--accent2);}
+.le.tk{color:var(--accent3);}
+.le.dp{color:var(--purple);}
+.le.tr{color:var(--accent);}
 
-  /* LOG */
-  #log { flex: 1; overflow-y: auto; padding: 10px 16px; }
-  .log-entry { font-family: var(--font-mono); font-size: 11px; color: var(--muted); padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.03); line-height: 1.4; }
-  .log-entry .le-turn { color: var(--accent); }
-  .log-entry .le-combat { color: var(--danger); }
-  .log-entry .le-event { color: var(--accent2); }
-  .log-entry .le-tech { color: var(--accent3); }
-  .log-entry .le-diplo { color: #b794f4; }
+/* ── MODAL ── */
+#modal-wrap{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center;z-index:200;backdrop-filter:blur(6px);}
+#modal-wrap.open{display:flex;}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:8px;padding:28px;width:min(500px,94vw);max-height:90vh;overflow-y:auto;}
+.modal h2{font-family:var(--fd);font-size:18px;font-weight:700;color:var(--accent);margin-bottom:16px;letter-spacing:.06em;}
+.modal-body{font-size:15px;color:var(--muted);line-height:1.7;margin-bottom:16px;}
+.modal-body strong{color:var(--text);}
+.dice-area{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0;}
+.die{width:50px;height:50px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-size:22px;font-weight:900;}
+.die.a{background:rgba(255,107,107,.15);border:2px solid var(--danger);color:var(--danger);}
+.die.d{background:rgba(91,184,255,.15);border:2px solid var(--accent);color:var(--accent);}
+.die.w{background:rgba(94,232,154,.2);border:2px solid var(--accent3);color:var(--accent3);}
+.result-line{display:flex;justify-content:space-between;font-size:15px;padding:10px 0;border-top:1px solid var(--border);}
+.m-btns{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;flex-wrap:wrap;}
+.mbtns-left{margin-right:auto;}
 
-  /* PHASE STEPS */
-  .phase-steps { display: flex; gap: 4px; padding: 10px 16px; border-bottom: 1px solid var(--border); }
-  .ps { flex: 1; height: 3px; border-radius: 1px; background: var(--bg3); }
-  .ps.done { background: var(--accent3); }
-  .ps.active { background: var(--accent); }
+/* ── SETUP ── */
+#setup{position:fixed;inset:0;background:var(--bg);z-index:300;display:flex;align-items:center;justify-content:center;overflow-y:auto;}
+.setup-box{background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:40px;width:min(680px,96vw);margin:20px auto;}
+.setup-box h1{font-family:var(--fd);font-size:32px;font-weight:900;color:var(--accent);letter-spacing:.1em;margin-bottom:6px;}
+.setup-sub{font-family:var(--fm);font-size:14px;color:var(--muted);margin-bottom:30px;}
+.setup-label{font-family:var(--fm);font-size:12px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;}
+.faction-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:24px;}
+.fc{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:16px;cursor:pointer;transition:all .15s;}
+.fc:hover{border-color:var(--border2);}
+.fc.sel{border-color:var(--accent);background:rgba(91,184,255,.07);}
+.fc-flag{font-size:28px;margin-bottom:8px;}
+.fc-name{font-size:17px;font-weight:700;}
+.fc-ability{font-size:12px;font-weight:600;margin-top:2px;}
+.fc-desc{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.4;}
+.count-row{display:flex;gap:8px;margin-bottom:24px;align-items:center;}
+.cnt{width:42px;height:42px;border-radius:4px;border:1px solid var(--border2);background:transparent;color:var(--text);font-family:var(--fd);font-size:18px;cursor:pointer;transition:all .15s;}
+.cnt.sel{background:rgba(91,184,255,.18);border-color:var(--accent);color:var(--accent);}
+.start-btn{width:100%;padding:14px;font-family:var(--fd);font-size:16px;font-weight:700;letter-spacing:.12em;background:rgba(91,184,255,.15);border:1px solid var(--accent);border-radius:4px;color:var(--accent);cursor:pointer;transition:all .15s;}
+.start-btn:hover{background:rgba(91,184,255,.25);}
 
-  /* MODAL */
-  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 100; backdrop-filter: blur(4px); }
-  .modal { background: var(--bg2); border: 1px solid var(--border2); border-radius: 6px; padding: 24px; max-width: 440px; width: 90%; }
-  .modal h2 { font-family: var(--font-display); font-size: 16px; font-weight: 700; color: var(--accent); margin-bottom: 16px; letter-spacing: 0.05em; }
-  .modal-body { font-size: 13px; line-height: 1.7; color: var(--muted); margin-bottom: 16px; }
-  .modal-body strong { color: var(--text); }
-  .dice-row { display: flex; gap: 8px; margin: 12px 0; }
-  .die { width: 44px; height: 44px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-size: 20px; font-weight: 900; }
-  .die.atk { background: rgba(252,129,129,0.15); border: 2px solid var(--danger); color: var(--danger); }
-  .die.def { background: rgba(99,179,237,0.15); border: 2px solid var(--accent); color: var(--accent); }
-  .die.win { background: rgba(104,211,145,0.2); border-color: var(--accent3); color: var(--accent3); }
-  .result-row { display: flex; justify-content: space-between; font-size: 13px; padding: 8px 0; border-top: 1px solid var(--border); margin-top: 8px; }
-  .modal-btns { display: flex; gap: 8px; justify-content: flex-end; }
+/* ── WINNER ── */
+#winner{position:fixed;inset:0;background:rgba(0,0,0,.88);display:none;align-items:center;justify-content:center;z-index:400;backdrop-filter:blur(10px);}
+#winner.show{display:flex;}
+.win-box{text-align:center;padding:60px 40px;}
+.win-box h1{font-family:var(--fd);font-size:52px;font-weight:900;margin-bottom:12px;}
+.win-box p{font-family:var(--fm);font-size:16px;color:var(--muted);margin-bottom:32px;}
 
-  /* SETUP SCREEN */
-  #setup-screen { position: fixed; inset: 0; background: var(--bg); z-index: 200; display: flex; align-items: center; justify-content: center; }
-  .setup-box { background: var(--bg2); border: 1px solid var(--border2); border-radius: 8px; padding: 40px; max-width: 600px; width: 90%; }
-  .setup-box h1 { font-family: var(--font-display); font-size: 28px; font-weight: 900; color: var(--accent); letter-spacing: 0.08em; margin-bottom: 4px; }
-  .setup-box .sub { font-size: 14px; color: var(--muted); margin-bottom: 32px; font-family: var(--font-mono); }
-  .player-setup { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 24px; }
-  .ps-card { background: var(--bg3); border: 1px solid var(--border); border-radius: 4px; padding: 14px; cursor: pointer; transition: all 0.15s; }
-  .ps-card.selected { border-color: var(--accent); background: rgba(99,179,237,0.06); }
-  .ps-card:hover { border-color: var(--border2); }
-  .ps-flag { font-size: 24px; margin-bottom: 6px; }
-  .ps-name { font-size: 15px; font-weight: 700; }
-  .ps-ability { font-size: 11px; color: var(--muted); margin-top: 4px; line-height: 1.4; }
-  .count-select { display: flex; gap: 8px; margin-bottom: 24px; align-items: center; }
-  .count-select label { font-family: var(--font-mono); font-size: 12px; color: var(--muted); margin-right: 4px; }
-  .count-btn { width: 36px; height: 36px; border-radius: 3px; border: 1px solid var(--border2); background: transparent; color: var(--text); font-family: var(--font-display); font-size: 16px; cursor: pointer; }
-  .count-btn.active { background: rgba(99,179,237,0.15); border-color: var(--accent); color: var(--accent); }
+/* ── NOTIF ── */
+#notif{position:fixed;top:72px;left:50%;transform:translateX(-50%);background:var(--bg2);border:1px solid var(--border2);border-radius:4px;padding:12px 22px;font-family:var(--fm);font-size:14px;z-index:350;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;}
+#notif.show{opacity:1;}
 
-  /* NOTIFICATION */
-  #notif { position: fixed; top: 70px; left: 50%; transform: translateX(-50%); background: var(--bg2); border: 1px solid var(--border2); border-radius: 4px; padding: 12px 20px; font-family: var(--font-mono); font-size: 12px; z-index: 300; opacity: 0; transition: opacity 0.3s; pointer-events: none; max-width: 400px; text-align: center; }
-  #notif.show { opacity: 1; }
+/* ── SLIDER ── */
+input[type=range]{width:100%;accent-color:var(--accent);margin:8px 0;}
+input[type=number]{background:var(--bg3);border:1px solid var(--border2);border-radius:4px;color:var(--text);font-family:var(--fm);font-size:15px;padding:6px 10px;width:70px;text-align:center;}
+select{background:var(--bg3);border:1px solid var(--border2);border-radius:4px;color:var(--text);font-family:var(--fm);font-size:14px;padding:6px 10px;}
 
-  /* CYBER PANEL */
-  .cyber-ops { display: grid; grid-template-columns: 1fr; gap: 6px; }
-  .cyber-op { background: var(--bg3); border: 1px solid var(--border); border-radius: 3px; padding: 8px 10px; cursor: pointer; transition: all 0.15s; display: flex; justify-content: space-between; align-items: center; }
-  .cyber-op:hover { border-color: #b794f4; background: rgba(183,148,244,0.05); }
-  .cyber-op-name { font-size: 12px; font-weight: 600; color: #b794f4; }
-  .cyber-op-desc { font-size: 11px; color: var(--muted); }
-  .cyber-cost { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
-
-  /* TROOP SLIDER */
-  .troop-slider { width: 100%; margin: 10px 0; accent-color: var(--accent); }
-
-  /* WINNER SCREEN */
-  #winner-screen { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center; z-index: 500; backdrop-filter: blur(8px); }
-  #winner-screen.show { display: flex; }
-  .winner-box { text-align: center; padding: 60px; }
-  .winner-box h1 { font-family: var(--font-display); font-size: 48px; font-weight: 900; margin-bottom: 16px; }
-  .winner-box p { font-family: var(--font-mono); font-size: 16px; color: var(--muted); margin-bottom: 32px; }
-
-  scrollbar-width: thin;
-  ::-webkit-scrollbar { width: 4px; }
-  ::-webkit-scrollbar-track { background: var(--bg); }
-  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
 </style>
 </head>
 <body>
 
-<!-- SETUP SCREEN -->
-<div id="setup-screen">
+<!-- SETUP -->
+<div id="setup">
   <div class="setup-box">
-    <h1>BORDERLINE</h1>
-    <p class="sub">// the world is yours to take</p>
-
-    <div style="font-family:var(--font-mono);font-size:11px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:10px;">Number of players</div>
-    <div class="count-select">
-      <label>Select:</label>
-      <button class="count-btn" data-n="2" onclick="setPlayerCount(2)">2</button>
-      <button class="count-btn" data-n="3" onclick="setPlayerCount(3)">3</button>
-      <button class="count-btn active" data-n="4" onclick="setPlayerCount(4)">4</button>
-      <button class="count-btn" data-n="5" onclick="setPlayerCount(5)">5</button>
+    <h1>BORDER<em>LINE</em></h1>
+    <p class="setup-sub">// the world is yours to take</p>
+    <div class="setup-label">Number of players</div>
+    <div class="count-row">
+      <span style="font-family:var(--fm);font-size:13px;color:var(--muted);margin-right:6px;">Select:</span>
+      <button class="cnt" data-n="2" onclick="setN(2)">2</button>
+      <button class="cnt" data-n="3" onclick="setN(3)">3</button>
+      <button class="cnt sel" data-n="4" onclick="setN(4)">4</button>
+      <button class="cnt" data-n="5" onclick="setN(5)">5</button>
     </div>
-
-    <div style="font-family:var(--font-mono);font-size:11px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:10px;">Choose your faction</div>
-    <div class="player-setup" id="faction-cards"></div>
-
-    <button class="btn primary" onclick="startGame()" style="width:100%;padding:12px;font-size:15px;font-family:var(--font-display);letter-spacing:0.1em;">DEPLOY FORCES →</button>
+    <div class="setup-label">Choose your faction</div>
+    <div class="faction-grid" id="fc-grid"></div>
+    <button class="start-btn" onclick="startGame()">DEPLOY FORCES →</button>
   </div>
 </div>
 
-<!-- WINNER SCREEN -->
-<div id="winner-screen">
-  <div class="winner-box">
-    <h1 id="winner-text">VICTORY</h1>
-    <p id="winner-sub">dominates the world</p>
-    <button class="btn primary" onclick="location.reload()" style="padding:12px 32px;font-family:var(--font-display);letter-spacing:0.1em;">PLAY AGAIN</button>
+<!-- WINNER -->
+<div id="winner">
+  <div class="win-box">
+    <h1 id="win-title">VICTORY</h1>
+    <p id="win-sub">achieves world domination</p>
+    <button class="tbtn go" onclick="location.reload()" style="padding:14px 36px;font-family:var(--fd);font-size:16px;letter-spacing:.1em;">PLAY AGAIN</button>
   </div>
 </div>
 
-<!-- NOTIFICATION -->
+<!-- NOTIF -->
 <div id="notif"></div>
 
 <!-- MODAL -->
-<div id="modal" class="modal-overlay" style="display:none;">
-  <div class="modal" id="modal-content"></div>
+<div id="modal-wrap">
+  <div class="modal" id="modal-inner"></div>
 </div>
 
-<!-- MAIN APP -->
-<div id="app">
-  <!-- TOPBAR -->
+<!-- MAIN -->
+<div id="shell">
   <div id="topbar">
-    <div class="logo">BORDER<span>LINE</span></div>
-    <div class="turn-info" id="turn-info">Round <strong id="round-num">1</strong> — <strong id="cur-player-name">Loading...</strong>'s turn</div>
-    <div class="phase-badge" id="phase-badge">Economy</div>
-    <div class="topbar-right">
-      <span style="font-family:var(--font-mono);font-size:11px;color:var(--muted);" id="action-hint">Select a territory</span>
-      <button class="btn primary" id="phase-btn" onclick="advancePhase()">Next Phase →</button>
-    </div>
+    <div class="logo">BORDER<em>LINE</em></div>
+    <div id="turn-label">Round <strong id="rn">1</strong> — <strong id="cpn">...</strong></div>
+    <div id="phase-pill">Loading</div>
+    <div id="hint-text">Starting...</div>
+    <button class="tbtn go" id="next-btn" onclick="advancePhase()">Next Phase →</button>
   </div>
 
-  <!-- MAP -->
-  <div id="map-area">
-    <svg id="map-svg" viewBox="0 0 900 560" preserveAspectRatio="xMidYMid meet">
-      <!-- Continent background labels -->
-      <text class="continent-label" x="160" y="120">North America</text>
-      <text class="continent-label" x="250" y="440">South America</text>
-      <text class="continent-label" x="430" y="110">Europe</text>
-      <text class="continent-label" x="430" y="330">Africa</text>
-      <text class="continent-label" x="620" y="130">Russia / Asia</text>
-      <text class="continent-label" x="760" y="400">Oceania</text>
+  <div id="map-wrap">
+    <svg id="world-svg" viewBox="0 0 960 540" preserveAspectRatio="xMidYMid meet">
+      <defs>
+        <filter id="glow">
+          <feGaussianBlur stdDeviation="3" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+      <!-- Ocean background -->
+      <rect width="960" height="540" fill="#0d1f35"/>
+      <!-- Grid lines subtle -->
+      <line x1="0" y1="270" x2="960" y2="270" stroke="rgba(255,255,255,.04)" stroke-width="1"/>
+      <line x1="480" y1="0" x2="480" y2="540" stroke="rgba(255,255,255,.04)" stroke-width="1"/>
     </svg>
   </div>
 
-  <!-- SIDEBAR -->
   <div id="sidebar">
-    <!-- Phase progress -->
-    <div class="phase-steps" id="phase-steps"></div>
+    <div class="phase-track" id="phase-track"></div>
+    <div id="sb-tabs">
+      <div class="sb-tab active" data-pane="pane-status" onclick="showPane('pane-status')">STATUS</div>
+      <div class="sb-tab" data-pane="pane-cards" onclick="showPane('pane-cards')">CARDS</div>
+      <div class="sb-tab" data-pane="pane-tech" onclick="showPane('pane-tech')">TECH</div>
+      <div class="sb-tab" data-pane="pane-log" onclick="showPane('pane-log')">LOG</div>
+    </div>
 
-    <!-- Player resources -->
-    <div class="sb-section" id="resource-section">
-      <div class="sb-title">Current Player Resources</div>
-      <div class="res-row">
-        <div class="res-card">
-          <div class="res-icon">⚔️</div>
-          <div class="res-val" id="res-troops" style="color:var(--danger)">0</div>
-          <div class="res-lbl">TROOPS</div>
-        </div>
-        <div class="res-card">
-          <div class="res-icon">💰</div>
-          <div class="res-val" id="res-gdp" style="color:var(--accent2)">0</div>
-          <div class="res-lbl">GDP</div>
-        </div>
-        <div class="res-card">
-          <div class="res-icon">⚡</div>
-          <div class="res-val" id="res-cyber" style="color:#b794f4">0</div>
-          <div class="res-lbl">CYBER</div>
-        </div>
+    <div class="sb-pane active" id="pane-status">
+      <div class="res-grid">
+        <div class="res-card"><div class="res-val" id="r-troops" style="color:var(--danger)">0</div><div class="res-lbl">TROOPS</div></div>
+        <div class="res-card"><div class="res-val" id="r-gdp" style="color:var(--accent2)">0</div><div class="res-lbl">GDP</div></div>
+        <div class="res-card"><div class="res-val" id="r-cyber" style="color:var(--purple)">0</div><div class="res-lbl">CYBER</div></div>
+      </div>
+      <div class="event-box" id="event-box">
+        <div class="ev-name">—</div>
+        <div class="ev-desc">No active event</div>
+      </div>
+      <div style="font-family:var(--fm);font-size:11px;color:var(--muted);letter-spacing:.08em;margin-bottom:8px;text-transform:uppercase;">Factions</div>
+      <div id="factions-list"></div>
+    </div>
+
+    <div class="sb-pane" id="pane-cards">
+      <div style="font-family:var(--fm);font-size:11px;color:var(--muted);letter-spacing:.08em;margin-bottom:8px;text-transform:uppercase;">Your Hand</div>
+      <div class="card-hand" id="card-hand"></div>
+      <div id="trade-area"></div>
+      <div style="margin-top:14px;font-family:var(--fm);font-size:11px;color:var(--muted);">
+        Trade 3 matching or 1 of each symbol for bonus troops.<br>
+        Trade values: 4→6→8→10→12→15→+5 each set.
       </div>
     </div>
 
-    <!-- World Event -->
-    <div class="sb-section" id="event-section">
-      <div class="sb-title">Active World Event</div>
-      <div class="event-card" id="event-display">
-        <div class="event-name">—</div>
-        <div class="event-desc">No active event</div>
-      </div>
+    <div class="sb-pane" id="pane-tech">
+      <div style="font-family:var(--fm);font-size:11px;color:var(--muted);letter-spacing:.08em;margin-bottom:8px;text-transform:uppercase;">Tech Tree — spend GDP to unlock</div>
+      <div class="tech-grid" id="tech-grid"></div>
     </div>
 
-    <!-- Tech Tree -->
-    <div class="sb-section" id="tech-section">
-      <div class="sb-title">Tech Tree — click to unlock</div>
-      <div class="tech-grid" id="tech-display"></div>
+    <div class="sb-pane" id="pane-log">
+      <div id="log-list"></div>
     </div>
-
-    <!-- Cyber Ops -->
-    <div class="sb-section" id="cyber-section" style="display:none">
-      <div class="sb-title">Cyber Operations</div>
-      <div class="cyber-ops" id="cyber-display"></div>
-    </div>
-
-    <!-- Diplomacy -->
-    <div class="sb-section" id="diplo-section">
-      <div class="sb-title">Diplomacy</div>
-      <div id="diplo-display"><div style="font-size:12px;color:var(--muted)">No active treaties</div></div>
-    </div>
-
-    <!-- Factions overview -->
-    <div class="sb-section">
-      <div class="sb-title">Factions</div>
-      <div id="factions-overview"></div>
-    </div>
-
-    <!-- Log -->
-    <div id="log"></div>
   </div>
 </div>
 
 <script>
-// ============================================================
-// GAME DATA
-// ============================================================
-
-const FACTIONS = [
-  { id:0, name:'USA', flag:'🇺🇸', color:'#63b3ed', ability:'Tech Superpower', abilityDesc:'+1 tech point per turn, drones cost -1', techBonus: true },
-  { id:1, name:'Russia', flag:'🇷🇺', color:'#fc8181', ability:'Iron Curtain', abilityDesc:'+2 troops per turn, -1 cyber', militaryBonus: true },
-  { id:2, name:'China', flag:'🇨🇳', color:'#f6ad55', ability:'Economic Engine', abilityDesc:'+2 GDP per turn, trade routes yield double', economyBonus: true },
-  { id:3, name:'EU', flag:'🇪🇺', color:'#68d391', ability:'Diplomatic Bloc', abilityDesc:'Treaties last +1 round, -1 diplo penalty', diploBonus: true },
-  { id:4, name:'India', flag:'🇮🇳', color:'#b794f4', ability:'Cyber Warriors', abilityDesc:'+2 cyber per turn, cyber ops cost -1', cyberBonus: true },
+// ═══════════════════════════════════════════════════════════
+// FACTIONS
+// ═══════════════════════════════════════════════════════════
+const FACTIONS=[
+  {id:0,name:'USA',flag:'🇺🇸',color:'#5bb8ff',ability:'Tech Superpower',abilityDesc:'Tech costs -1 GDP. +1 cyber/turn.',techBonus:true},
+  {id:1,name:'Russia',flag:'🇷🇺',color:'#ff6b6b',ability:'Iron Curtain',abilityDesc:'+2 troops/turn. Defense ties go defender.',militaryBonus:true},
+  {id:2,name:'China',flag:'🇨🇳',color:'#f9b44a',ability:'Economic Engine',abilityDesc:'+2 GDP/turn. GDP card trades +1 troop.',economyBonus:true},
+  {id:3,name:'EU',flag:'🇪🇺',color:'#5ee89a',ability:'Diplomatic Bloc',abilityDesc:'Treaties last +1 turn. Breakage penalty halved.',diploBonus:true},
+  {id:4,name:'India',flag:'🇮🇳',color:'#c084fc',ability:'Cyber Warriors',abilityDesc:'+2 cyber/turn. Cyber ops cost -1.',cyberBonus:true},
 ];
 
-const TERRITORIES = [
-  // North America (continent 0, bonus 5)
-  { id:0, name:'Alaska', cx:75, cy:95, continent:0 },
-  { id:1, name:'NW Canada', cx:145, cy:85, continent:0 },
-  { id:2, name:'Greenland', cx:245, cy:60, continent:0 },
-  { id:3, name:'W Canada', cx:130, cy:130, continent:0 },
-  { id:4, name:'C Canada', cx:195, cy:120, continent:0 },
-  { id:5, name:'E Canada', cx:255, cy:115, continent:0 },
-  { id:6, name:'W USA', cx:120, cy:175, continent:0 },
-  { id:7, name:'E USA', cx:195, cy:175, continent:0 },
-  { id:8, name:'Mexico', cx:150, cy:230, continent:0 },
-  // South America (continent 1, bonus 2)
-  { id:9, name:'Venezuela', cx:225, cy:295, continent:1 },
-  { id:10, name:'Brazil', cx:265, cy:360, continent:1 },
-  { id:11, name:'Peru', cx:215, cy:365, continent:1 },
-  { id:12, name:'Argentina', cx:240, cy:440, continent:1 },
-  // Europe (continent 2, bonus 5)
-  { id:13, name:'Iceland', cx:355, cy:68, continent:2 },
-  { id:14, name:'UK', cx:370, cy:115, continent:2 },
-  { id:15, name:'Scandinavia', cx:430, cy:80, continent:2 },
-  { id:16, name:'W Europe', cx:375, cy:165, continent:2 },
-  { id:17, name:'C Europe', cx:435, cy:145, continent:2 },
-  { id:18, name:'S Europe', cx:430, cy:195, continent:2 },
-  { id:19, name:'E Europe', cx:495, cy:140, continent:2 },
-  // Africa (continent 3, bonus 3)
-  { id:20, name:'N Africa', cx:390, cy:275, continent:3 },
-  { id:21, name:'Egypt', cx:460, cy:255, continent:3 },
-  { id:22, name:'W Africa', cx:375, cy:340, continent:3 },
-  { id:23, name:'E Africa', cx:470, cy:325, continent:3 },
-  { id:24, name:'C Africa', cx:430, cy:380, continent:3 },
-  { id:25, name:'S Africa', cx:450, cy:450, continent:3 },
-  // Asia (continent 4, bonus 7)
-  { id:26, name:'Middle East', cx:530, cy:230, continent:4 },
-  { id:27, name:'India', cx:610, cy:255, continent:4 },
-  { id:28, name:'Russia N', cx:590, cy:90, continent:4 },
-  { id:29, name:'Russia E', cx:680, cy:100, continent:4 },
-  { id:30, name:'C Asia', cx:600, cy:175, continent:4 },
-  { id:31, name:'China', cx:680, cy:200, continent:4 },
-  { id:32, name:'SE Asia', cx:700, cy:290, continent:4 },
-  { id:33, name:'Korea/Japan', cx:760, cy:175, continent:4 },
-  // Oceania (continent 5, bonus 2)
-  { id:34, name:'Indonesia', cx:740, cy:355, continent:5 },
-  { id:35, name:'New Guinea', cx:800, cy:355, continent:5 },
-  { id:36, name:'W Australia', cx:760, cy:440, continent:5 },
-  { id:37, name:'E Australia', cx:840, cy:430, continent:5 },
+// ═══════════════════════════════════════════════════════════
+// MAP DATA — 42 territories with real-ish SVG shapes
+// ═══════════════════════════════════════════════════════════
+// Each territory: id, name, continent(0-5), cx, cy, path(SVG d attr)
+// Continents: 0=N.America 1=S.America 2=Europe 3=Africa 4=Asia 5=Oceania
+const TERR=[
+  // ── NORTH AMERICA (0-8) ──
+  {id:0,name:'Alaska',cont:0,cx:62,cy:68,
+    p:'M30,45 L90,45 L95,80 L75,95 L40,90 L25,70 Z'},
+  {id:1,name:'NW Canada',cont:0,cx:140,cy:68,
+    p:'M95,45 L195,45 L200,90 L145,95 L95,80 Z'},
+  {id:2,name:'Greenland',cont:0,cx:265,cy:42,
+    p:'M225,20 L310,20 L315,65 L260,70 L220,55 Z'},
+  {id:3,name:'W Canada',cont:0,cx:120,cy:118,
+    p:'M75,95 L165,95 L168,140 L115,145 L70,130 Z'},
+  {id:4,name:'C Canada',cont:0,cx:195,cy:108,
+    p:'M165,90 L230,90 L235,128 L168,135 Z'},
+  {id:5,name:'E Canada',cont:0,cx:260,cy:100,
+    p:'M230,72 L300,72 L305,132 L235,128 L230,90 Z'},
+  {id:6,name:'W USA',cont:0,cx:105,cy:165,
+    p:'M68,145 L160,145 L162,190 L100,195 L65,175 Z'},
+  {id:7,name:'E USA',cont:0,cx:195,cy:165,
+    p:'M160,140 L245,140 L248,195 L162,192 Z'},
+  {id:8,name:'Mexico',cont:0,cx:148,cy:215,
+    p:'M100,195 L200,195 L195,240 L140,245 L98,225 Z'},
+  // ── SOUTH AMERICA (9-12) ──
+  {id:9,name:'Venezuela',cont:1,cx:205,cy:275,
+    p:'M175,255 L240,255 L242,298 L178,300 Z'},
+  {id:10,name:'Brazil',cont:1,cx:245,cy:340,
+    p:'M178,298 L295,298 L298,385 L240,390 L175,370 L170,320 Z'},
+  {id:11,name:'Peru',cont:1,cx:195,cy:340,
+    p:'M162,298 L180,298 L175,370 L158,370 L150,330 Z'},
+  {id:12,name:'Argentina',cont:1,cx:215,cy:415,
+    p:'M165,388 L260,388 L255,450 L205,458 L162,440 Z'},
+  // ── EUROPE (13-19) ──
+  {id:13,name:'Iceland',cont:2,cx:340,cy:55,
+    p:'M315,38 L368,38 L370,72 L318,74 Z'},
+  {id:14,name:'UK',cont:2,cx:358,cy:108,
+    p:'M338,88 L380,88 L382,128 L340,130 Z'},
+  {id:15,name:'Scandinavia',cont:2,cx:415,cy:75,
+    p:'M388,45 L450,45 L452,108 L390,108 Z'},
+  {id:16,name:'W Europe',cont:2,cx:368,cy:162,
+    p:'M338,135 L400,135 L402,190 L338,190 Z'},
+  {id:17,name:'C Europe',cont:2,cx:420,cy:148,
+    p:'M400,125 L452,125 L454,172 L402,172 Z'},
+  {id:18,name:'S Europe',cont:2,cx:418,cy:195,
+    p:'M390,172 L458,172 L460,218 L388,220 Z'},
+  {id:19,name:'E Europe',cont:2,cx:472,cy:132,
+    p:'M452,108 L498,108 L500,158 L454,158 Z'},
+  // ── AFRICA (20-25) ──
+  {id:20,name:'N Africa',cont:3,cx:385,cy:268,
+    p:'M335,245 L440,245 L442,295 L335,298 Z'},
+  {id:21,name:'Egypt',cont:3,cx:450,cy:248,
+    p:'M440,228 L498,228 L500,268 L442,270 Z'},
+  {id:22,name:'W Africa',cont:3,cx:372,cy:330,
+    p:'M335,298 L415,298 L418,362 L335,365 Z'},
+  {id:23,name:'E Africa',cont:3,cx:455,cy:318,
+    p:'M418,295 L500,295 L502,345 L418,350 Z'},
+  {id:24,name:'C Africa',cont:3,cx:410,cy:378,
+    p:'M338,362 L478,362 L480,405 L338,408 Z'},
+  {id:25,name:'S Africa',cont:3,cx:425,cy:435,
+    p:'M362,408 L488,408 L485,462 L365,462 Z'},
+  // ── ASIA (26-33) ──
+  {id:26,name:'Mid East',cont:4,cx:512,cy:228,
+    p:'M498,208 L548,208 L552,252 L498,255 Z'},
+  {id:27,name:'India',cont:4,cx:580,cy:268,
+    p:'M550,245 L615,245 L618,308 L555,310 Z'},
+  {id:28,name:'Russia N',cont:4,cx:570,cy:82,
+    p:'M500,55 L648,55 L650,108 L500,110 Z'},
+  {id:29,name:'Russia E',cont:4,cx:690,cy:72,
+    p:'M648,48 L750,48 L752,98 L650,100 Z'},
+  {id:30,name:'C Asia',cont:4,cx:568,cy:155,
+    p:'M500,125 L638,125 L640,185 L500,188 Z'},
+  {id:31,name:'China',cont:4,cx:668,cy:175,
+    p:'M638,138 L728,138 L730,212 L640,215 Z'},
+  {id:32,name:'SE Asia',cont:4,cx:685,cy:268,
+    p:'M640,245 L730,245 L732,300 L640,302 Z'},
+  {id:33,name:'Japan',cont:4,cx:762,cy:160,
+    p:'M742,138 L788,138 L790,182 L744,184 Z'},
+  // ── OCEANIA (34-37) ──
+  {id:34,name:'Indonesia',cont:5,cx:718,cy:352,
+    p:'M688,332 L750,332 L752,372 L690,374 Z'},
+  {id:35,name:'New Guinea',cont:5,cx:790,cy:348,
+    p:'M758,330 L822,330 L824,368 L760,370 Z'},
+  {id:36,name:'W Australia',cont:5,cx:748,cy:428,
+    p:'M708,400 L790,400 L792,458 L710,460 Z'},
+  {id:37,name:'E Australia',cont:5,cx:828,cy:428,
+    p:'M790,400 L868,400 L870,458 L792,460 Z'},
 ];
 
-const ADJACENCY = {
-  0:[1,3], 1:[0,2,3,4], 2:[1,4,5,13], 3:[0,1,4,6], 4:[1,2,3,5,7],
-  5:[2,4,7], 6:[3,4,7,8], 7:[4,5,6,8], 8:[6,7,9],
-  9:[8,10,11], 10:[9,11,12], 11:[9,10,12], 12:[10,11],
-  13:[2,14,15], 14:[13,15,16,17], 15:[13,14,17,19,28],
-  16:[14,17,18,20], 17:[14,15,16,18,19], 18:[16,17,19,20,21,26],
+const CONT_NAME=['N. America','S. America','Europe','Africa','Asia','Oceania'];
+const CONT_BONUS=[5,2,5,3,7,2];
+const CONT_SIZE=[9,4,7,6,8,4]; // territories per continent
+
+// ── ADJACENCY ──
+const ADJ={
+  0:[1,3],
+  1:[0,2,3,4,28],
+  2:[1,4,5,13],
+  3:[0,1,4,6],
+  4:[1,2,3,5,7],
+  5:[2,4,7],
+  6:[3,4,7,8],
+  7:[4,5,6,8],
+  8:[6,7,9],
+  9:[8,10,11],
+  10:[9,11,12],
+  11:[9,10,12],
+  12:[10,11],
+  13:[2,14,15],
+  14:[13,15,16,17],
+  15:[13,14,17,19,28],
+  16:[14,17,18,20],
+  17:[14,15,16,18,19],
+  18:[16,17,19,20,21,26],
   19:[15,17,18,26,28,30],
-  20:[16,18,21,22], 21:[18,20,23,26], 22:[20,23,24], 23:[21,22,24,25,26],
-  24:[22,23,25], 25:[23,24],
-  26:[18,21,23,27,30], 27:[26,30,31,32], 28:[15,19,29,30],
-  29:[28,30,31,33], 30:[19,26,27,28,29,31], 31:[27,29,30,32,33],
-  32:[27,31,33,34], 33:[29,31,32],
-  34:[32,35,36], 35:[34,37], 36:[34,37], 37:[35,36],
+  20:[16,18,21,22,24],
+  21:[18,20,23,26],
+  22:[20,23,24],
+  23:[21,22,24,25,26],
+  24:[22,23,25,20],
+  25:[23,24],
+  26:[18,21,23,27,30,19],
+  27:[26,30,31,32],
+  28:[1,15,19,29,30],
+  29:[28,30,31,33],
+  30:[19,26,27,28,29,31],
+  31:[27,29,30,32,33],
+  32:[27,31,33,34],
+  33:[29,31,32],
+  34:[32,35,36],
+  35:[34,36,37],
+  36:[34,35,37],
+  37:[35,36],
 };
 
-const CONTINENT_NAMES = ['N. America','S. America','Europe','Africa','Asia','Oceania'];
-const CONTINENT_BONUS = [5,2,5,3,7,2];
-
-const WORLD_EVENTS = [
-  { name:'Global Pandemic', effect:'All troop movement halved this round', impact: e => { e.movePenalty = 0.5; } },
-  { name:'Oil Crisis', effect:'All GDP income reduced by 2 this round', impact: e => { e.gdpPenalty = 2; } },
-  { name:'Cyberattack Wave', effect:'All players gain +2 cyber points', impact: e => { e.cyberBonus = 2; } },
-  { name:'Climate Disaster', effect:'Coastal territories yield -1 GDP', impact: e => { e.coastalPenalty = true; } },
-  { name:'Arms Race', effect:'All players receive +2 troops this round', impact: e => { e.troopBonus = 2; } },
-  { name:'Trade War', effect:'No trade treaties active this round', impact: e => { e.noTrade = true; } },
-  { name:'Space Race', effect:'Leading tech player gains +3 GDP', impact: e => { e.spaceBonus = true; } },
-  { name:'Diplomatic Summit', effect:'No attacks allowed first action', impact: e => { e.peaceTurn = true; } },
-  { name:'Refugee Crisis', effect:'Border territories get -1 defense die', impact: e => { e.borderWeakness = true; } },
-  { name:'Economic Boom', effect:'All players gain +2 GDP', impact: e => { e.gdpBonus = 2; } },
-  { name:'Nuclear Scare', effect:'All players lose 1 territory troop as deterrent', impact: e => { e.nuclearFear = true; } },
-  { name:'Tech Breakthrough', effect:'Cheapest tech unlocked free for all', impact: e => { e.freeTech = true; } },
+const EVENTS=[
+  {name:'Global Pandemic',desc:'All troop movement halved this round',fx:e=>{e.movePen=0.5;}},
+  {name:'Oil Crisis',desc:'All GDP income -2 this round',fx:e=>{e.gdpPen=2;}},
+  {name:'Cyberattack Wave',desc:'All players gain +2 cyber',fx:e=>{e.cyberBonus=2;}},
+  {name:'Arms Race',desc:'All players receive +2 troops',fx:e=>{e.troopBonus=2;}},
+  {name:'Trade War',desc:'GDP from trade routes halved',fx:e=>{e.tradeWar=true;}},
+  {name:'Space Race',desc:'Most territories player gains +3 GDP',fx:e=>{e.spaceRace=true;}},
+  {name:'Diplomatic Summit',desc:'No attacks on first action this turn',fx:e=>{e.peaceTurn=true;}},
+  {name:'Economic Boom',desc:'All players gain +2 GDP',fx:e=>{e.gdpBonus=2;}},
+  {name:'Tech Breakthrough',desc:'Cheapest unowned tech costs 1 less this turn',fx:e=>{e.techDisc=true;}},
+  {name:'Nuclear Standoff',desc:'No territory can be attacked with fewer than 3 troops this round',fx:e=>{e.nukeStandoff=true;}},
+  {name:'Refugee Crisis',desc:'Border territories defend with -1 die',fx:e=>{e.borderWeak=true;}},
+  {name:'Cyber Espionage',desc:'All players\' tech trees revealed this round',fx:e=>{e.techReveal=true;}},
 ];
 
-const TECH_TREE = [
-  { id:0, name:'Drones', cost:3, effect:'+1 attack die when attacking', category:'military', emoji:'🛸' },
-  { id:1, name:'Satellites', cost:4, effect:'See enemy troop counts', category:'intel', emoji:'🛰️' },
-  { id:2, name:'Cyber Defense', cost:3, effect:'Immune to 1 cyber op per turn', category:'cyber', emoji:'🛡️' },
-  { id:3, name:'Supply Chain', cost:3, effect:'+1 GDP per continent held', category:'economy', emoji:'🏭' },
-  { id:4, name:'Stealth Units', cost:5, effect:'Can move through enemy territory once', category:'military', emoji:'👥' },
-  { id:5, name:'Nukes', cost:7, effect:'Remove 3 enemy troops from 1 territory (1 use)', category:'military', emoji:'☢️' },
-  { id:6, name:'AI Warfare', cost:6, effect:'+1 to all dice rolls', category:'military', emoji:'🤖' },
-  { id:7, name:'Quantum Crypto', cost:4, effect:'Cyber ops do double damage', category:'cyber', emoji:'🔐' },
+const TECH=[
+  {id:0,name:'Drones',cost:3,fx:'+1 attack die (max 4)',em:'🛸'},
+  {id:1,name:'Satellites',cost:4,fx:'See all troop counts',em:'🛰️'},
+  {id:2,name:'Cyber Shield',cost:3,fx:'Block 1 cyber op/turn',em:'🛡️'},
+  {id:3,name:'Supply Chain',cost:3,fx:'+1 GDP per continent held',em:'🏭'},
+  {id:4,name:'Stealth Units',cost:5,fx:'Move through 1 allied territory extra',em:'👥'},
+  {id:5,name:'Tactical Nukes',cost:7,fx:'Remove 3 enemy troops once',em:'☢️'},
+  {id:6,name:'AI Warfare',cost:6,fx:'+1 to all your dice rolls',em:'🤖'},
+  {id:7,name:'Quantum Crypto',cost:4,fx:'Cyber ops deal double effect',em:'🔐'},
 ];
 
-const CYBER_OPS = [
-  { id:0, name:'Grid Attack', cost:2, effect:'Target loses 1 GDP next turn', desc:'Disrupt power infrastructure' },
-  { id:1, name:'Troop Jamming', cost:3, effect:'Target cannot reinforce 1 territory', desc:'Block enemy reinforcements' },
-  { id:2, name:'Intel Hack', cost:2, effect:'See target\'s tech tree & resources', desc:'Steal enemy intelligence' },
-  { id:3, name:'Propaganda', cost:3, effect:'Target territory\'s troops -1 defense', desc:'Undermine enemy morale' },
-];
+const CARD_TYPES=['Infantry','Cavalry','Artillery'];
+const CARD_ICONS=['🪖','🐴','🔫'];
+const TRADE_VALUES=[4,6,8,10,12,15];
 
-// ============================================================
-// GAME STATE
-// ============================================================
-
-let G = {
-  phase: 0, // 0=economy,1=diplomacy,2=tech,3=cyber,4=deploy,5=attack,6=move
-  phaseNames: ['Economy','Diplomacy','Tech','Cyber Ops','Deploy','Attack','Fortify'],
-  round: 1,
-  currentPlayer: 0,
-  playerCount: 4,
-  humanFaction: 0,
-  players: [],
-  territories: [],
-  treaties: [],
-  currentEvent: null,
-  eventDeck: [],
-  selectedTerritory: null,
-  attackSource: null,
-  troopsToDeploy: 0,
-  log: [],
-  cyberApplied: {},
+// ═══════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════
+let G={
+  phase:0, // 0=deploy 1=cards 2=tech 3=cyber 4=attack 5=fortify
+  phaseNames:['Deploy','Cards','Tech','Cyber','Attack','Fortify'],
+  round:1, curP:0, numP:4, humanIdx:0,
+  players:[], terrs:[], treaties:[],
+  event:null, eventDeck:[],
+  sel:null, atkSrc:null,
+  setsTraded:0, // global count for progressive values
+  conquered:false, // did human conquer a territory this turn?
+  setupPhase:true, // initial placement
+  setupTroopsLeft:[], // troops left for each player in setup
+  setupRound:0,
 };
 
-// ============================================================
-// SETUP
-// ============================================================
+// ═══════════════════════════════════════════════════════════
+// SETUP UI
+// ═══════════════════════════════════════════════════════════
+let _selFaction=0, _numP=4;
 
-let selectedFaction = 0;
-let selectedPlayerCount = 4;
-
-function buildSetupScreen() {
-  const fc = document.getElementById('faction-cards');
-  fc.innerHTML = FACTIONS.map(f => `
-    <div class="ps-card ${f.id===0?'selected':''}" onclick="selectFaction(${f.id})" id="faction-card-${f.id}">
-      <div class="ps-flag">${f.flag}</div>
-      <div class="ps-name" style="color:${f.color}">${f.name}</div>
-      <div style="font-size:12px;font-weight:600;color:var(--muted);margin-top:2px">${f.ability}</div>
-      <div class="ps-ability">${f.abilityDesc}</div>
-    </div>
-  `).join('');
+function buildSetupUI(){
+  document.getElementById('fc-grid').innerHTML=FACTIONS.map(f=>`
+    <div class="fc ${f.id===0?'sel':''}" id="fc-${f.id}" onclick="selF(${f.id})">
+      <div class="fc-flag">${f.flag}</div>
+      <div class="fc-name" style="color:${f.color}">${f.name}</div>
+      <div class="fc-ability" style="color:${f.color}">${f.ability}</div>
+      <div class="fc-desc">${f.abilityDesc}</div>
+    </div>`).join('');
+}
+function selF(id){
+  _selFaction=id;
+  document.querySelectorAll('.fc').forEach(el=>el.classList.remove('sel'));
+  document.getElementById('fc-'+id).classList.add('sel');
+}
+function setN(n){
+  _numP=n;
+  document.querySelectorAll('.cnt').forEach(el=>el.classList.toggle('sel',parseInt(el.dataset.n)===n));
 }
 
-function selectFaction(id) {
-  selectedFaction = id;
-  document.querySelectorAll('.ps-card').forEach(c => c.classList.remove('selected'));
-  document.getElementById('faction-card-'+id).classList.add('selected');
-}
-
-function setPlayerCount(n) {
-  selectedPlayerCount = n;
-  document.querySelectorAll('.count-btn').forEach(b => {
-    b.classList.toggle('active', parseInt(b.dataset.n) === n);
-  });
-}
-
-function startGame() {
-  G.playerCount = selectedPlayerCount;
-  G.humanFaction = selectedFaction;
-
-  // Build player objects
-  const factionOrder = [selectedFaction];
-  const others = [0,1,2,3,4].filter(i=>i!==selectedFaction);
+function startGame(){
+  G.numP=_numP;
+  G.humanIdx=0;
+  // Faction order: human first, shuffle rest
+  const others=FACTIONS.map((_,i)=>i).filter(i=>i!==_selFaction);
   shuffle(others);
-  for(let i=0; i<G.playerCount-1; i++) factionOrder.push(others[i]);
+  const order=[_selFaction,...others.slice(0,G.numP-1)];
 
-  G.players = factionOrder.map((fi,idx) => ({
-    factionId: fi,
-    name: FACTIONS[fi].name,
-    color: FACTIONS[fi].color,
-    flag: FACTIONS[fi].flag,
-    isHuman: idx===0,
-    troops: 0,
-    gdp: 5,
-    cyber: 3,
-    tech: [],
-    nukesUsed: 0,
-    cyberDefenseUsed: 0,
+  G.players=order.map((fi,idx)=>({
+    fi, name:FACTIONS[fi].name, color:FACTIONS[fi].color, flag:FACTIONS[fi].flag,
+    isHuman:idx===0,
+    troops:0, gdp:5, cyber:3,
+    tech:[], cards:[], nukesLeft:1,
+    alive:true,
   }));
 
   // Init territories
-  G.territories = TERRITORIES.map(t => ({ ...t, owner: -1, troops: 0, cyber: false }));
+  G.terrs=TERR.map(t=>({...t,owner:-1,troops:0}));
 
-  // Distribute territories
-  const tids = shuffle([...Array(TERRITORIES.length).keys()]);
-  tids.forEach((tid, i) => {
-    const owner = i % G.playerCount;
-    G.territories[tid].owner = owner;
-    G.territories[tid].troops = 2;
-  });
+  // Distribute territories via cards (shuffle & deal)
+  const tids=shuffle([...Array(38).keys()]);
+  tids.forEach((tid,i)=>{G.terrs[tid].owner=i%G.numP; G.terrs[tid].troops=1;});
 
-  // Give starting troops
-  G.players.forEach((p,pi) => {
-    const owned = G.territories.filter(t=>t.owner===pi).length;
-    p.troops = Math.max(0, owned * 1); // extra starting troops
-  });
+  // Starting armies per official rules
+  const startingTroops=[40,35,30,25,20];
+  const tPerP=Math.floor(38/G.numP);
+  G.setupTroopsLeft=G.players.map((_,pi)=>startingTroops[G.numP-2]-tPerP);
 
   // Event deck
-  G.eventDeck = shuffle([...WORLD_EVENTS]);
+  G.eventDeck=shuffle([...EVENTS]);
 
-  document.getElementById('setup-screen').style.display = 'none';
-  initUI();
+  document.getElementById('setup').style.display='none';
+  initMapSVG();
   drawMap();
-  startEconomyPhase();
+  // Begin setup placement phase
+  G.setupPhase=true;
+  G.round=0;
+  G.curP=0;
+  doSetupTurn();
 }
 
-// ============================================================
-// TURN ENGINE
-// ============================================================
+// ═══════════════════════════════════════════════════════════
+// SETUP PLACEMENT
+// ═══════════════════════════════════════════════════════════
+function doSetupTurn(){
+  updateTopbar();
+  const p=G.players[G.curP];
+  if(G.setupTroopsLeft[G.curP]<=0){
+    // this player done, next
+    advSetupPlayer(); return;
+  }
+  if(p.isHuman){
+    setHint(`Setup: place ${G.setupTroopsLeft[G.curP]} more troops on your territories`);
+    document.getElementById('next-btn').textContent='Skip Setup →';
+    document.getElementById('next-btn').onclick=skipSetup;
+  } else {
+    aiSetupPlace(); advSetupPlayer();
+  }
+  drawMap();
+}
 
-function startEconomyPhase() {
-  G.phase = 0;
-  G.selectedTerritory = null;
-  G.attackSource = null;
+function aiSetupPlace(){
+  const pi=G.curP;
+  let left=G.setupTroopsLeft[pi];
+  const mine=G.terrs.filter(t=>t.owner===pi);
+  while(left>0&&mine.length){
+    // place on border territories
+    const borders=mine.filter(t=>ADJ[t.id].some(a=>G.terrs[a].owner!==pi));
+    const tgt=borders.length?borders[rnd(borders.length)]:mine[rnd(mine.length)];
+    tgt.troops++; left--;
+  }
+  G.setupTroopsLeft[pi]=left;
+}
 
-  // Draw world event
-  if(G.eventDeck.length === 0) G.eventDeck = shuffle([...WORLD_EVENTS]);
-  G.currentEvent = G.eventDeck.pop();
-  document.getElementById('event-section').style.display = '';
+function advSetupPlayer(){
+  G.curP=(G.curP+1)%G.numP;
+  // Check if all done
+  if(G.setupTroopsLeft.every(n=>n<=0)||G.curP===0&&G.setupRound>G.numP*3){
+    beginMainGame(); return;
+  }
+  // Skip already-done players
+  if(G.setupTroopsLeft[G.curP]<=0){advSetupPlayer();return;}
+  G.setupRound++;
+  doSetupTurn();
+}
 
-  // Calculate income
-  const p = currentPlayer();
-  let troops = 3;
-  let gdp = 5;
-  let cyber = 2;
+function skipSetup(){
+  // Auto-place remaining troops for human
+  const pi=G.curP;
+  const mine=G.terrs.filter(t=>t.owner===pi);
+  let left=G.setupTroopsLeft[pi];
+  while(left>0&&mine.length){mine[rnd(mine.length)].troops++;left--;}
+  G.setupTroopsLeft[pi]=0;
+  advSetupPlayer();
+}
 
+function beginMainGame(){
+  G.setupPhase=false;
+  G.round=1; G.curP=0;
+  document.getElementById('next-btn').onclick=advancePhase;
+  beginTurn();
+}
+
+// ═══════════════════════════════════════════════════════════
+// MAIN TURN ENGINE
+// ═══════════════════════════════════════════════════════════
+function beginTurn(){
+  G.phase=0; G.sel=null; G.atkSrc=null; G.conquered=false;
+  // Draw event
+  if(G.eventDeck.length===0)G.eventDeck=shuffle([...EVENTS]);
+  G.event=G.eventDeck.pop();
+  // Collect income
+  const p=cur();
+  const f=FACTIONS[p.fi];
+  let troops=Math.max(3,Math.floor(G.terrs.filter(t=>t.owner===G.curP).length/3));
+  let gdp=5; let cyber=2;
   // Continent bonuses
-  CONTINENT_BONUS.forEach((bonus, ci) => {
-    const owned = G.territories.filter(t=>t.continent===ci && t.owner===G.currentPlayer);
-    if(owned.length === TERRITORIES.filter(t=>t.continent===ci).length) troops += bonus;
+  CONT_BONUS.forEach((bonus,ci)=>{
+    const total=TERR.filter(t=>t.cont===ci).length;
+    const owned=G.terrs.filter(t=>t.cont===ci&&t.owner===G.curP).length;
+    if(owned===total) troops+=bonus;
   });
-
-  // Territory count
-  const ownedCount = G.territories.filter(t=>t.owner===G.currentPlayer).length;
-  troops += Math.floor(ownedCount / 3);
-
-  // Faction bonuses
-  const f = FACTIONS[p.factionId];
-  if(f.militaryBonus) troops += 2;
-  if(f.economyBonus) gdp += 2;
-  if(f.cyberBonus) cyber += 2;
-
-  // Tech bonuses
-  if(p.tech.includes(3)) gdp += CONTINENT_BONUS.filter((_,ci)=>G.territories.some(t=>t.continent===ci&&t.owner===G.currentPlayer)).length;
-
-  // Event effects
-  if(G.currentEvent) {
-    const ev = {};
-    G.currentEvent.impact(ev);
-    if(ev.troopBonus) troops += ev.troopBonus;
-    if(ev.gdpBonus) gdp += ev.gdpBonus;
-    if(ev.gdpPenalty) gdp -= ev.gdpPenalty;
-    if(ev.cyberBonus) cyber += ev.cyberBonus;
-  }
-
-  p.troops += Math.max(1, troops);
-  p.gdp += Math.max(0, gdp);
-  p.cyber += Math.max(0, cyber);
-
-  G.troopsToDeploy = p.troops;
-
-  addLog(`<span class="le-turn">[R${G.round}] ${p.flag} ${p.name}</span> collects +${troops} troops, +${gdp} GDP, +${cyber} cyber`);
-  if(G.currentEvent) addLog(`<span class="le-event">⚡ EVENT: ${G.currentEvent.name}</span>`);
-
+  if(f.militaryBonus)troops+=2;
+  if(f.economyBonus)gdp+=2;
+  if(f.cyberBonus)cyber+=2;
+  if(p.tech.includes(3))gdp+=CONT_BONUS.filter((_,ci)=>G.terrs.filter(t=>t.cont===ci&&t.owner===G.curP).length===TERR.filter(t=>t.cont===ci).length).length;
+  // Event
+  const ev={};if(G.event)G.event.fx(ev);
+  if(ev.troopBonus)troops+=ev.troopBonus;
+  if(ev.gdpBonus)gdp+=ev.gdpBonus;
+  if(ev.gdpPen)gdp=Math.max(0,gdp-ev.gdpPen);
+  if(ev.cyberBonus)cyber+=ev.cyberBonus;
+  p.troops+=troops; p.gdp+=gdp; p.cyber+=cyber;
+  addLog(`[R${G.round}] ${p.flag} ${p.name}: +${troops}⚔️ +${gdp}💰 +${cyber}⚡`,'tr');
+  addLog(`⚡ EVENT: ${G.event.name}`,'ev');
   updateUI();
-  setHint('Economy phase — resources collected. Click Next Phase when ready.');
-}
-
-function advancePhase() {
-  if(G.phase === 0) { startDiploPhase(); }
-  else if(G.phase === 1) { startTechPhase(); }
-  else if(G.phase === 2) { startCyberPhase(); }
-  else if(G.phase === 3) { startDeployPhase(); }
-  else if(G.phase === 4) { startAttackPhase(); }
-  else if(G.phase === 5) { startMovePhase(); }
-  else if(G.phase === 6) { endTurn(); }
-}
-
-function startDiploPhase() {
-  G.phase = 1;
-  G.selectedTerritory = null;
-  updateUI();
-  if(currentPlayer().isHuman) {
-    setHint('Diplomacy — offer or view treaties. Click Next Phase to skip.');
-    showDiploModal();
+  if(p.isHuman){
+    setHint(`Deploy ${p.troops} troops to your territories`);
+    showDeployUI();
   } else {
-    // AI: randomly form a treaty
-    aiDiplomacy();
-    setTimeout(advancePhase, 600);
+    aiTurn();
   }
 }
 
-function startTechPhase() {
-  G.phase = 2;
-  G.selectedTerritory = null;
-  updateUI();
-  setHint('Tech phase — click a tech to unlock it with GDP. Next Phase when done.');
-  if(!currentPlayer().isHuman) {
-    aiTech();
-    setTimeout(advancePhase, 600);
+function showDeployUI(){
+  // Show deploy modal for human
+  const p=cur();
+  if(p.troops<=0){advancePhase();return;}
+  const myT=G.terrs.filter(t=>t.owner===G.curP);
+  let sel=myT[0]?.id??0;
+  const opts=myT.map(t=>`<option value="${t.id}">${t.name} (${t.troops} troops)</option>`).join('');
+  showModal(`
+    <h2>⚔️ Deploy Troops</h2>
+    <div class="modal-body">You have <strong id="dep-left">${p.troops}</strong> troops to place.</div>
+    <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
+      <select id="dep-sel" style="flex:1;">${opts}</select>
+      <input type="number" id="dep-amt" value="1" min="1" max="${p.troops}" style="width:70px;">
+      <button class="tbtn go" onclick="deployTroops()">Place</button>
+    </div>
+    <button class="tbtn" onclick="deployAll()">Place All →</button>
+    <div class="m-btns"><button class="tbtn go" onclick="closeModal();advancePhase()">Done Deploying →</button></div>
+  `);
+}
+
+function deployTroops(){
+  const p=cur();
+  const tid=parseInt(document.getElementById('dep-sel').value);
+  const amt=Math.min(parseInt(document.getElementById('dep-amt').value)||1,p.troops);
+  if(amt<=0||p.troops<=0)return;
+  G.terrs[tid].troops+=amt; p.troops-=amt;
+  addLog(`Placed ${amt} on ${G.terrs[tid].name}`,'tr');
+  document.getElementById('dep-left').textContent=p.troops;
+  document.getElementById('dep-amt').max=p.troops;
+  if(p.troops<=0){closeModal();advancePhase();}
+  drawMap(); updateUI();
+}
+
+function deployAll(){
+  const p=cur();
+  const tid=parseInt(document.getElementById('dep-sel').value);
+  G.terrs[tid].troops+=p.troops;
+  addLog(`Placed all ${p.troops} on ${G.terrs[tid].name}`,'tr');
+  p.troops=0;
+  closeModal(); advancePhase();
+  drawMap(); updateUI();
+}
+
+function advancePhase(){
+  closeModal();
+  G.sel=null; G.atkSrc=null;
+  G.phase++;
+  if(G.phase>5){endTurn();return;}
+  updateUI(); drawMap();
+  const p=cur();
+  if(!p.isHuman){aiTurn();return;}
+
+  if(G.phase===1){ // Cards
+    showPane('pane-cards');
+    setHint('Trade card sets for bonus troops, then click Next Phase');
+    renderCards();
+  } else if(G.phase===2){ // Tech
+    showPane('pane-tech');
+    setHint('Spend GDP to unlock technologies, then click Next Phase');
+    renderTech();
+  } else if(G.phase===3){ // Cyber
+    setHint('Use cyber points to run operations on enemies, then click Next Phase');
+    showCyberModal();
+  } else if(G.phase===4){ // Attack
+    showPane('pane-status');
+    setHint('Click YOUR territory (2+ troops) → click enemy to attack. Next Phase when done.');
+    document.getElementById('next-btn').textContent='Stop Attacking →';
+  } else if(G.phase===5){ // Fortify
+    setHint('Click your territory → adjacent friendly territory to move troops. Once only.');
+    document.getElementById('next-btn').textContent='End Turn →';
   }
 }
 
-function startCyberPhase() {
-  G.phase = 3;
-  document.getElementById('cyber-section').style.display = '';
-  updateUI();
-  setHint('Cyber Ops — spend cyber points to disrupt enemies. Next Phase when done.');
-  if(!currentPlayer().isHuman) {
-    aiCyber();
-    setTimeout(advancePhase, 600);
+function endTurn(){
+  // Earn card if conquered
+  if(G.conquered){
+    const card={type:rnd(3),terr:G.terrs[rnd(38)].id};
+    cur().cards.push(card);
+    addLog(`${cur().flag} earned a ${CARD_TYPES[card.type]} card`,'tr');
   }
+  // Tick treaties
+  G.treaties=G.treaties.map(t=>({...t,rounds:t.rounds-1})).filter(t=>t.rounds>0);
+  // Next player
+  let next=(G.curP+1)%G.numP;
+  let tries=0;
+  while(!G.players[next].alive&&tries<G.numP){next=(next+1)%G.numP;tries++;}
+  if(next===G.curP&&G.players.filter(p=>p.alive).length===1){
+    showWinner(cur()); return;
+  }
+  G.curP=next;
+  if(G.curP===0)G.round++;
+  checkWin();
+  document.getElementById('next-btn').textContent='Next Phase →';
+  document.getElementById('next-btn').onclick=advancePhase;
+  beginTurn();
 }
 
-function startDeployPhase() {
-  G.phase = 4;
-  G.selectedTerritory = null;
-  document.getElementById('cyber-section').style.display = 'none';
-  updateUI();
-  const p = currentPlayer();
-  if(p.troops > 0 && p.isHuman) {
-    setHint(`Deploy ${p.troops} troops — click your territories to place them.`);
-  } else if(!p.isHuman) {
-    aiDeploy();
-    setTimeout(advancePhase, 800);
+// ═══════════════════════════════════════════════════════════
+// CARDS
+// ═══════════════════════════════════════════════════════════
+function renderCards(){
+  const p=cur();
+  const handEl=document.getElementById('card-hand');
+  handEl.innerHTML=p.cards.length?p.cards.map((c,i)=>`
+    <div class="risk-card ${c.sel?'selected-card':''}" onclick="toggleCard(${i})">
+      <span class="card-icon">${CARD_ICONS[c.type]}</span>
+      <div style="font-size:13px;font-weight:700;">${CARD_TYPES[c.type]}</div>
+      <div class="card-type">${G.terrs[c.terr]?.name??'Wild'}</div>
+    </div>`).join(''):'<div style="color:var(--muted);font-size:14px;">No cards yet</div>';
+
+  const sel=p.cards.filter(c=>c.sel);
+  const tradeEl=document.getElementById('trade-area');
+  if(sel.length===3){
+    const valid=isValidSet(sel);
+    const val=tradeValue();
+    tradeEl.innerHTML=`
+      <div style="margin:10px 0;font-size:14px;color:var(--muted);">Selected set: ${valid?'<span style="color:var(--accent3)">✓ Valid — trade for '+val+' troops</span>':'<span style="color:var(--danger)">✗ Not a valid set</span>'}</div>
+      ${valid?`<button class="tbtn go" onclick="tradeCards()">Trade for ${val} Troops</button>`:''}
+    `;
   } else {
-    advancePhase();
+    tradeEl.innerHTML=`<div style="font-size:13px;color:var(--muted);margin-top:8px;">Select 3 cards to trade (3 matching or 1 of each type)</div>`;
   }
 }
 
-function startAttackPhase() {
-  G.phase = 5;
-  G.attackSource = null;
-  G.selectedTerritory = null;
-  updateUI();
-  drawMap();
-  if(currentPlayer().isHuman) {
-    setHint('Attack — click one of YOUR territories, then click an adjacent enemy to attack.');
-  } else {
-    aiAttack();
-  }
+function toggleCard(i){
+  const p=cur();
+  p.cards[i].sel=!p.cards[i].sel;
+  // max 3 selected
+  if(p.cards.filter(c=>c.sel).length>3) p.cards[i].sel=false;
+  renderCards();
 }
 
-function startMovePhase() {
-  G.phase = 6;
-  G.selectedTerritory = null;
-  G.attackSource = null;
-  updateUI();
-  drawMap();
-  if(currentPlayer().isHuman) {
-    setHint('Fortify — click your territory, then an adjacent friendly territory to move troops.');
-  } else {
-    setTimeout(endTurn, 400);
-  }
+function isValidSet(sel){
+  const types=sel.map(c=>c.type).sort();
+  return (types[0]===types[1]&&types[1]===types[2])||(types[0]!==types[1]&&types[1]!==types[2]&&types[0]!==types[2]);
 }
 
-function endTurn() {
-  G.currentPlayer = (G.currentPlayer + 1) % G.playerCount;
-  if(G.currentPlayer === 0) G.round++;
+function tradeValue(){
+  const v=G.setsTraded<6?TRADE_VALUES[G.setsTraded]:15+(G.setsTraded-5)*5;
+  return v;
+}
 
-  // Check win
-  const aliveOwners = new Set(G.territories.map(t=>t.owner));
-  if(aliveOwners.size === 1) {
-    const winner = G.players[G.currentPlayer];
-    showWinner(winner);
+function tradeCards(){
+  const p=cur();
+  const sel=p.cards.filter(c=>c.sel);
+  if(sel.length!==3||!isValidSet(sel))return;
+  const troops=tradeValue();
+  G.setsTraded++;
+  p.troops+=troops;
+  // Bonus: if any card matches owned territory
+  sel.forEach(c=>{if(G.terrs[c.terr]?.owner===G.curP){G.terrs[c.terr].troops+=2;addLog(`+2 troops bonus on ${G.terrs[c.terr].name}`,'tr');}});
+  p.cards=p.cards.filter(c=>!c.sel);
+  addLog(`${p.flag} traded cards for ${troops} troops`,'tr');
+  notify(`+${troops} troops from card trade!`);
+  updateUI(); renderCards(); drawMap();
+}
+
+// ═══════════════════════════════════════════════════════════
+// TECH
+// ═══════════════════════════════════════════════════════════
+function renderTech(){
+  const p=cur();
+  document.getElementById('tech-grid').innerHTML=TECH.map(t=>{
+    let cost=t.cost;
+    if(FACTIONS[p.fi].techBonus)cost=Math.max(1,cost-1);
+    const owned=p.tech.includes(t.id);
+    const buyable=!owned&&p.gdp>=cost&&p.isHuman;
+    return `<div class="tech-item ${owned?'owned':buyable?'buyable':''}" onclick="${buyable?`buyTech(${t.id})`:''}" title="${t.fx}">
+      <span class="tech-em">${t.em}</span>
+      <div class="tech-name">${t.name}</div>
+      <div class="tech-cost">${owned?'✓ Owned':`${cost} GDP`}</div>
+      <div class="tech-fx">${t.fx}</div>
+    </div>`;
+  }).join('');
+}
+
+function buyTech(id){
+  const p=cur();
+  const t=TECH[id];
+  let cost=t.cost;
+  if(FACTIONS[p.fi].techBonus)cost=Math.max(1,cost-1);
+  if(p.tech.includes(id)){notify('Already owned');return;}
+  if(p.gdp<cost){notify(`Need ${cost} GDP`);return;}
+  p.gdp-=cost; p.tech.push(id);
+  addLog(`${p.flag} unlocked ${t.em} ${t.name}`,'tk');
+  notify(`${t.em} ${t.name} unlocked!`);
+  renderTech(); updateUI();
+}
+
+// ═══════════════════════════════════════════════════════════
+// CYBER
+// ═══════════════════════════════════════════════════════════
+function showCyberModal(){
+  const p=cur();
+  const enemies=G.players.map((pl,i)=>({pl,i})).filter(({pl,i})=>i!==G.curP&&pl.alive);
+  const ops=[
+    {name:'Grid Attack',cost:2,em:'⚡',desc:'Target loses 2 GDP',fx:(ti)=>{G.players[ti].gdp=Math.max(0,G.players[ti].gdp-2);}},
+    {name:'Troop Jamming',cost:3,em:'📡',desc:'Target gets -1 troop next deploy',fx:(ti)=>{G.players[ti].troops=Math.max(0,G.players[ti].troops-2);}},
+    {name:'Propaganda',cost:3,em:'📢',desc:'Random enemy territory -2 troops',fx:(ti)=>{
+      const tts=G.terrs.filter(t=>t.owner===ti);
+      if(tts.length){const tt=tts[rnd(tts.length)];tt.troops=Math.max(1,tt.troops-2);}
+    }},
+    {name:'Hack Comms',cost:2,em:'💻',desc:'Reveal target\'s GDP and cards count',fx:(ti)=>{
+      notify(`${G.players[ti].flag} has ${G.players[ti].gdp} GDP and ${G.players[ti].cards.length} cards`);
+    }},
+  ];
+  if(FACTIONS[p.fi].cyberBonus)ops.forEach(o=>o.cost=Math.max(1,o.cost-1));
+  const rows=ops.map((op,oi)=>`
+    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:10px;margin-bottom:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <div style="font-size:15px;font-weight:700;color:var(--purple)">${op.em} ${op.name}</div>
+        <div style="font-family:var(--fm);font-size:13px;color:var(--muted)">${op.cost}⚡</div>
+      </div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:8px;">${op.desc}</div>
+      ${enemies.map(({pl,i})=>`<button class="tbtn" style="margin:2px;font-size:13px;" onclick="runCyber(${oi},${i},${JSON.stringify(ops).split('')},'${op.em} ${op.name}',${op.cost})">→ ${pl.flag} ${pl.name}</button>`).join('')}
+    </div>`).join('');
+
+  showModal(`
+    <h2>⚡ Cyber Operations</h2>
+    <div class="modal-body">You have <strong>${p.cyber} cyber points</strong>.</div>
+    ${rows.length&&enemies.length?rows:'<div style="color:var(--muted)">No valid targets</div>'}
+    <div class="m-btns"><button class="tbtn go" onclick="closeModal();advancePhase()">Skip Cyber →</button></div>
+  `);
+}
+
+// Simplified cyber runner
+function runCyber(opIdx,targetIdx,_,name,cost){
+  const p=cur();
+  if(p.cyber<cost){notify(`Need ${cost} cyber points`);return;}
+  p.cyber-=cost;
+  const ops_fx=[
+    (ti)=>{G.players[ti].gdp=Math.max(0,G.players[ti].gdp-2);},
+    (ti)=>{G.players[ti].troops=Math.max(0,G.players[ti].troops-2);},
+    (ti)=>{const tts=G.terrs.filter(t=>t.owner===ti);if(tts.length){const tt=tts[rnd(tts.length)];tt.troops=Math.max(1,tt.troops-2);}},
+    (ti)=>{notify(`${G.players[ti].flag} has ${G.players[ti].gdp} GDP and ${G.players[ti].cards.length} cards`);},
+  ];
+  ops_fx[opIdx](targetIdx);
+  addLog(`${p.flag} cyber op: ${name} → ${G.players[targetIdx].flag}`,'tk');
+  notify(`${name} executed!`);
+  updateUI(); drawMap();
+  showCyberModal();
+}
+
+// ═══════════════════════════════════════════════════════════
+// COMBAT
+// ═══════════════════════════════════════════════════════════
+function onTerritoryClick(tid){
+  const t=G.terrs[tid];
+  const p=cur();
+  if(!p.isHuman)return;
+
+  if(G.setupPhase){
+    // Place 1 setup troop
+    if(t.owner===G.curP&&G.setupTroopsLeft[G.curP]>0){
+      t.troops++; G.setupTroopsLeft[G.curP]--;
+      drawMap(); updateTopbar();
+      if(G.setupTroopsLeft[G.curP]===0)advSetupPlayer();
+    }
     return;
   }
 
-  // Check if current player is eliminated
-  const alive = G.territories.some(t=>t.owner===G.currentPlayer);
-  if(!alive) {
-    G.currentPlayer = (G.currentPlayer + 1) % G.playerCount;
-  }
-
-  G.cyberApplied = {};
-  document.getElementById('cyber-section').style.display = 'none';
-  startEconomyPhase();
-  drawMap();
-}
-
-// ============================================================
-// TERRITORY INTERACTION
-// ============================================================
-
-function onTerritoryClick(tid) {
-  const t = G.territories[tid];
-  const p = currentPlayer();
-
-  if(!p.isHuman) return;
-
-  if(G.phase === 4) {
-    // Deploy
-    if(t.owner === G.currentPlayer && p.troops > 0) {
-      t.troops++;
-      p.troops--;
-      addLog(`Deployed 1 troop to ${t.name} (${p.troops} left)`);
-      updateUI();
-      drawMap();
-      if(p.troops === 0) setHint('All troops deployed. Click Next Phase.');
-    }
-  } else if(G.phase === 5) {
-    // Attack
-    if(G.attackSource === null) {
-      if(t.owner === G.currentPlayer && t.troops > 1) {
-        G.attackSource = tid;
-        G.selectedTerritory = tid;
-        setHint(`Attacking from ${t.name} — click adjacent enemy territory.`);
+  if(G.phase===4){ // Attack
+    if(G.atkSrc===null){
+      if(t.owner===G.curP&&t.troops>1){
+        G.atkSrc=tid; G.sel=tid;
+        setHint(`Attacking from ${t.name} — click adjacent enemy`);
         drawMap();
       }
     } else {
-      const src = G.territories[G.attackSource];
-      if(tid === G.attackSource) {
-        G.attackSource = null; G.selectedTerritory = null;
-        setHint('Select your territory to attack from.'); drawMap(); return;
-      }
-      if(t.owner !== G.currentPlayer && ADJACENCY[G.attackSource].includes(tid)) {
-        doCombat(G.attackSource, tid);
-      } else if(t.owner === G.currentPlayer && t.troops > 1) {
-        G.attackSource = tid; G.selectedTerritory = tid;
-        setHint(`Attacking from ${t.name} — click adjacent enemy territory.`);
-        drawMap();
+      if(tid===G.atkSrc){G.atkSrc=null;G.sel=null;drawMap();setHint('Select your territory to attack from');return;}
+      if(t.owner!==G.curP&&ADJ[G.atkSrc].includes(tid)){
+        startCombat(G.atkSrc,tid);
+      } else if(t.owner===G.curP&&t.troops>1){
+        G.atkSrc=tid;G.sel=tid;setHint(`Attacking from ${t.name}`);drawMap();
       }
     }
-  } else if(G.phase === 6) {
-    // Fortify
-    if(G.selectedTerritory === null) {
-      if(t.owner === G.currentPlayer && t.troops > 1) {
-        G.selectedTerritory = tid;
-        setHint(`Moving from ${t.name} — click adjacent friendly territory.`);
-        drawMap();
-      }
+  } else if(G.phase===5){ // Fortify
+    if(G.sel===null){
+      if(t.owner===G.curP&&t.troops>1){G.sel=tid;setHint(`Moving from ${t.name} — click adjacent friendly`);drawMap();}
     } else {
-      const src = G.territories[G.selectedTerritory];
-      if(t.owner === G.currentPlayer && ADJACENCY[G.selectedTerritory].includes(tid) && tid !== G.selectedTerritory) {
-        const move = Math.floor((src.troops - 1));
-        if(move > 0) {
-          src.troops -= move; t.troops += move;
-          addLog(`Fortified: moved ${move} troops from ${src.name} → ${t.name}`);
-        }
-        G.selectedTerritory = null;
-        drawMap(); updateUI();
-        setHint('Fortify complete. Click Next Phase to end turn.');
+      if(t.owner===G.curP&&ADJ[G.sel].includes(tid)&&tid!==G.sel){
+        const src=G.terrs[G.sel];
+        const mv=src.troops-1;
+        src.troops=1; t.troops+=mv;
+        addLog(`Fortified ${mv} troops: ${src.name}→${t.name}`,'tr');
+        G.sel=null; drawMap(); updateUI();
+        notify(`Moved ${mv} troops to ${t.name}`);
+        advancePhase(); // only one fortify move
       } else {
-        G.selectedTerritory = (t.owner === G.currentPlayer && t.troops > 1) ? tid : null;
+        G.sel=t.owner===G.curP&&t.troops>1?tid:null;
         drawMap();
       }
     }
-  } else {
-    G.selectedTerritory = tid;
-    drawMap();
   }
 }
 
-// ============================================================
-// COMBAT
-// ============================================================
-
-function doCombat(srcId, defId) {
-  const attacker = G.territories[srcId];
-  const defender = G.territories[defId];
-  const atkPlayer = G.players[attacker.owner];
-  const defPlayer = G.players[defender.owner];
-
-  let atkDice = Math.min(3, attacker.troops - 1);
-  let defDice = Math.min(2, defender.troops);
-
-  // Tech bonuses
-  if(atkPlayer.tech.includes(0)) atkDice = Math.min(atkDice + 1, 4); // drones
-  if(atkPlayer.tech.includes(6)) atkDice = Math.min(atkDice + 1, 4); // AI
-
-  // Cyber debuffs
-  if(G.cyberApplied[defId] && G.cyberApplied[defId].propaganda) defDice = Math.max(1, defDice - 1);
-
-  const atkRolls = rollDice(atkDice).sort((a,b)=>b-a);
-  const defRolls = rollDice(defDice).sort((a,b)=>b-a);
-
-  let atkLoss = 0, defLoss = 0;
-  const pairs = Math.min(atkRolls.length, defRolls.length);
-  for(let i=0; i<pairs; i++) {
-    if(atkRolls[i] > defRolls[i]) defLoss++;
-    else atkLoss++;
-  }
-
-  // AI warfare tech gives +1
-  if(atkPlayer.tech.includes(6)) { defLoss = Math.min(defLoss + 1, defender.troops); }
-
-  attacker.troops -= atkLoss;
-  defender.troops -= defLoss;
-
-  let conquered = false;
-  if(defender.troops <= 0) {
-    defender.owner = attacker.owner;
-    defender.troops = Math.min(3, attacker.troops - 1);
-    attacker.troops -= defender.troops;
-    if(attacker.troops < 1) attacker.troops = 1;
-    conquered = true;
-    addLog(`<span class="le-combat">⚔️ ${atkPlayer.flag} ${attacker.name} → ${defender.name}: CONQUERED! (atk-${atkLoss} def-${defLoss})</span>`);
-  } else {
-    addLog(`<span class="le-combat">⚔️ ${attacker.name}→${defender.name}: atk-${atkLoss} def-${defLoss}</span>`);
-  }
-
-  showCombatModal(atkRolls, defRolls, atkLoss, defLoss, conquered, attacker.name, defender.name, defPlayer);
-  checkWin();
-  drawMap();
-  updateUI();
-  G.attackSource = null;
-  G.selectedTerritory = null;
-}
-
-function rollDice(n) {
-  return Array.from({length:n}, () => Math.ceil(Math.random()*6));
-}
-
-function showCombatModal(atkRolls, defRolls, atkLoss, defLoss, conquered, srcName, defName, defPlayer) {
-  const content = `
-    <h2>⚔️ Combat Result</h2>
-    <div class="modal-body">
-      <strong>${srcName}</strong> attacked <strong>${defName}</strong> (${defPlayer.flag} ${defPlayer.name})
-    </div>
-    <div style="display:flex;gap:16px;margin-bottom:12px">
-      <div>
-        <div style="font-family:var(--font-mono);font-size:10px;color:var(--muted);margin-bottom:6px">ATTACKER DICE</div>
-        <div class="dice-row">${atkRolls.map(r=>`<div class="die atk">${r}</div>`).join('')}</div>
-      </div>
-      <div>
-        <div style="font-family:var(--font-mono);font-size:10px;color:var(--muted);margin-bottom:6px">DEFENDER DICE</div>
-        <div class="dice-row">${defRolls.map(r=>`<div class="die def">${r}</div>`).join('')}</div>
-      </div>
-    </div>
-    <div class="result-row">
-      <span>Attacker losses: <strong style="color:var(--danger)">${atkLoss}</strong></span>
-      <span>Defender losses: <strong style="color:var(--accent3)">${defLoss}</strong></span>
-    </div>
-    ${conquered ? `<div style="text-align:center;margin-top:12px;font-family:var(--font-display);font-size:16px;color:var(--accent3);font-weight:700">TERRITORY CONQUERED!</div>` : ''}
-    <div class="modal-btns" style="margin-top:16px">
-      <button class="btn primary" onclick="closeModal()">Continue</button>
-    </div>
-  `;
-  showModal(content);
-}
-
-// ============================================================
-// DIPLOMACY
-// ============================================================
-
-function showDiploModal() {
-  const p = currentPlayer();
-  const options = G.players.map((other, pi) => {
-    if(pi === G.currentPlayer) return '';
-    const existing = G.treaties.find(t => (t.a===G.currentPlayer&&t.b===pi)||(t.a===pi&&t.b===G.currentPlayer));
-    if(existing) return `
-      <div class="treaty-item">
-        <div class="treaty-dot" style="background:${other.color}"></div>
-        <span>${other.flag} ${other.name}</span>
-        <span class="treaty-badge treaty-${existing.type}">${existing.type.toUpperCase()} (${existing.rounds}r left)</span>
-        <button class="btn danger" style="padding:2px 8px;font-size:11px" onclick="breakTreaty(${pi});closeModal()">Break</button>
-      </div>`;
-    return `
-      <div class="treaty-item">
-        <div class="treaty-dot" style="background:${other.color}"></div>
-        <span>${other.flag} ${other.name}</span>
-        <button class="btn" style="padding:2px 8px;font-size:11px" onclick="proposeTreaty(${pi},'nap');closeModal()">NAP</button>
-        <button class="btn" style="padding:2px 8px;font-size:11px;border-color:var(--accent2);color:var(--accent2)" onclick="proposeTreaty(${pi},'trade');closeModal()">Trade</button>
-      </div>`;
-  }).join('');
+function startCombat(srcId,defId){
+  const src=G.terrs[srcId], def=G.terrs[defId];
+  const atkP=G.players[src.owner], defP=G.players[def.owner];
+  const maxAtk=Math.min(src.troops-1+(atkP.tech.includes(0)?1:0),4);
+  const maxDef=Math.min(def.troops,2);
 
   showModal(`
-    <h2>🤝 Diplomacy</h2>
-    <div class="modal-body">Form <strong>Non-Aggression Pacts</strong> or <strong>Trade Agreements</strong>. Break them and suffer -2 troops penalty for 2 rounds.</div>
-    ${options || '<div style="color:var(--muted);font-size:13px">No other players</div>'}
-    <div class="modal-btns" style="margin-top:16px">
-      <button class="btn primary" onclick="closeModal();advancePhase()">Done →</button>
+    <h2>⚔️ Attack: ${src.name} → ${def.name}</h2>
+    <div class="modal-body">
+      <strong>${atkP.flag} ${atkP.name}</strong> (${src.troops} troops) attacks <strong>${defP.flag} ${defP.name}</strong> (${def.troops} troops)
+    </div>
+    <div style="display:flex;gap:20px;margin-bottom:14px;flex-wrap:wrap;">
+      <div>
+        <div style="font-family:var(--fm);font-size:12px;color:var(--muted);margin-bottom:6px">ATTACK DICE (you)</div>
+        ${[...Array(maxAtk)].map((_,i)=>`<label style="margin-right:10px;font-size:15px;cursor:pointer;"><input type="radio" name="ad" value="${i+1}" ${i===Math.min(2,maxAtk-1)?'checked':''}> ${i+1}</label>`).join('')}
+      </div>
+      <div>
+        <div style="font-family:var(--fm);font-size:12px;color:var(--muted);margin-bottom:6px">DEFEND DICE (${defP.flag})</div>
+        ${[...Array(maxDef)].map((_,i)=>`<label style="margin-right:10px;font-size:15px;cursor:pointer;"><input type="radio" name="dd" value="${i+1}" ${i===maxDef-1?'checked':''}> ${i+1}</label>`).join('')}
+      </div>
+    </div>
+    <div class="m-btns">
+      <button class="tbtn red" onclick="G.atkSrc=null;G.sel=null;closeModal();drawMap();setHint('Select territory to attack from.')">Cancel</button>
+      <button class="tbtn go" onclick="rollCombat(${srcId},${defId})">Roll Dice →</button>
     </div>
   `);
 }
 
-function proposeTreaty(targetPlayer, type) {
-  const rounds = (currentPlayer().tech.includes && FACTIONS[currentPlayer().factionId].diploBonus) ? 4 : 3;
-  // Remove existing
-  G.treaties = G.treaties.filter(t => !((t.a===G.currentPlayer&&t.b===targetPlayer)||(t.a===targetPlayer&&t.b===G.currentPlayer)));
-  G.treaties.push({ a: G.currentPlayer, b: targetPlayer, type, rounds });
-  const other = G.players[targetPlayer];
-  addLog(`<span class="le-diplo">🤝 ${currentPlayer().flag} ${currentPlayer().name} & ${other.flag} ${other.name}: ${type.toUpperCase()} treaty (${rounds} rounds)</span>`);
-  updateDiploDisplay();
-}
+function rollCombat(srcId,defId){
+  const ad=parseInt(document.querySelector('input[name=ad]:checked')?.value||1);
+  const dd=parseInt(document.querySelector('input[name=dd]:checked')?.value||1);
+  const src=G.terrs[srcId],def=G.terrs[defId];
+  const atkP=G.players[src.owner],defP=G.players[def.owner];
 
-function breakTreaty(targetPlayer) {
-  G.treaties = G.treaties.filter(t => !((t.a===G.currentPlayer&&t.b===targetPlayer)||(t.a===targetPlayer&&t.b===G.currentPlayer)));
-  // Penalty: -2 troops for current player
-  currentPlayer().troops = Math.max(0, currentPlayer().troops - 2);
-  addLog(`<span class="le-diplo">💔 ${currentPlayer().name} broke treaty — -2 troops penalty</span>`);
-  updateDiploDisplay();
-}
+  let aRolls=rollDice(ad).sort((a,b)=>b-a);
+  let dRolls=rollDice(dd).sort((a,b)=>b-a);
 
-function aiDiplomacy() {
-  // AI randomly forms NAP with someone
-  const allies = G.players.map((_,i)=>i).filter(i=>i!==G.currentPlayer);
-  if(allies.length && Math.random() < 0.4) {
-    const target = allies[Math.floor(Math.random()*allies.length)];
-    proposeTreaty(target, 'nap');
-  }
-}
+  // AI warfare tech
+  if(atkP.tech.includes(6))aRolls=aRolls.map(r=>Math.min(r+1,6));
 
-// ============================================================
-// TECH
-// ============================================================
-
-function buyTech(techId) {
-  const p = currentPlayer();
-  if(!p.isHuman) return;
-  const tech = TECH_TREE[techId];
-  let cost = tech.cost;
-  if(FACTIONS[p.factionId].techBonus) cost = Math.max(1, cost-1);
-  if(p.tech.includes(techId)) { notify('Already unlocked!'); return; }
-  if(p.gdp < cost) { notify(`Not enough GDP (need ${cost})`); return; }
-  p.gdp -= cost;
-  p.tech.push(techId);
-  addLog(`<span class="le-tech">🔬 ${p.name} unlocked ${tech.emoji} ${tech.name}</span>`);
-  updateUI();
-  notify(`${tech.emoji} ${tech.name} unlocked!`);
-}
-
-function aiTech() {
-  const p = G.players[G.currentPlayer];
-  const affordable = TECH_TREE.filter(t => !p.tech.includes(t.id) && p.gdp >= t.cost);
-  if(affordable.length && Math.random() < 0.5) {
-    const pick = affordable[Math.floor(Math.random()*affordable.length)];
-    p.gdp -= pick.cost;
-    p.tech.push(pick.id);
-    addLog(`<span class="le-tech">🔬 ${p.name} unlocked ${pick.emoji} ${pick.name}</span>`);
-  }
-}
-
-// ============================================================
-// CYBER
-// ============================================================
-
-function doCyberOp(opId) {
-  const p = currentPlayer();
-  const op = CYBER_OPS[opId];
-  let cost = op.cost;
-  if(FACTIONS[p.factionId].cyberBonus) cost = Math.max(1, cost-1);
-  if(p.cyber < cost) { notify(`Need ${cost} cyber points`); return; }
-
-  // Pick target (human picks via alert for now, AI auto)
-  const enemies = G.players.map((_,i)=>i).filter(i=>i!==G.currentPlayer);
-  if(!enemies.length) return;
-
-  // For human: simple prompt
-  const targetIdx = enemies[0]; // simplified: target first enemy
-  const target = G.players[targetIdx];
-  p.cyber -= cost;
-
-  if(op.id === 0) target.gdp = Math.max(0, target.gdp-2);
-  if(op.id === 1) {
-    // Mark a random territory of target
-    const tts = G.territories.filter(t=>t.owner===targetIdx);
-    if(tts.length) { G.cyberApplied[tts[0].id] = { jammed: true }; }
-  }
-  if(op.id === 3) {
-    const tts = G.territories.filter(t=>t.owner===targetIdx);
-    if(tts.length) { const tid = tts[Math.floor(Math.random()*tts.length)].id; G.cyberApplied[tid] = { ...(G.cyberApplied[tid]||{}), propaganda: true }; }
+  let aLoss=0,dLoss=0;
+  for(let i=0;i<Math.min(aRolls.length,dRolls.length);i++){
+    // Russia: ties go to defender (special rule = attacker still loses on tie for Russia defending)
+    if(aRolls[i]>dRolls[i])dLoss++;
+    else aLoss++;
   }
 
-  addLog(`<span class="le-tech">⚡ CYBER: ${p.name} → ${target.name}: ${op.name}</span>`);
-  notify(`${op.name} launched against ${target.flag} ${target.name}`);
-  updateUI();
-}
+  src.troops-=aLoss; def.troops-=dLoss;
+  let conquered=false;
+  let moveMin=1,moveMax=ad;
 
-function aiCyber() {
-  const p = G.players[G.currentPlayer];
-  if(p.cyber >= 2 && Math.random() < 0.4) {
-    const enemies = G.players.map((_,i)=>i).filter(i=>i!==G.currentPlayer&&G.territories.some(t=>t.owner===i));
-    if(enemies.length) {
-      const target = G.players[enemies[Math.floor(Math.random()*enemies.length)]];
-      target.gdp = Math.max(0, target.gdp - 1);
-      p.cyber -= 2;
-      addLog(`<span class="le-tech">⚡ CYBER: ${p.name} → ${target.name}: Grid Attack</span>`);
+  if(def.troops<=0){
+    conquered=true;
+    G.conquered=true;
+    def.owner=src.owner;
+    const mv=Math.min(ad,src.troops-1);
+    def.troops=mv; src.troops-=mv;
+    if(src.troops<1)src.troops=1;
+    addLog(`⚔️ ${atkP.flag} CONQUERED ${def.name}! (a-${aLoss} d-${dLoss})`,'ct');
+    // Check elimination
+    const defAlive=G.terrs.some(t=>t.owner===G.players.indexOf(defP));
+    if(!defAlive){
+      defP.alive=false;
+      atkP.cards=[...atkP.cards,...defP.cards];
+      defP.cards=[];
+      addLog(`${atkP.flag} eliminated ${defP.flag} ${defP.name} — gained their cards`,'ct');
+      notify(`${defP.flag} ${defP.name} eliminated! You gained their cards.`);
     }
+    checkWin();
+  } else {
+    addLog(`⚔️ ${src.name}→${def.name}: a-${aLoss} d-${dLoss}`,'ct');
   }
-}
 
-// ============================================================
-// AI DEPLOY & ATTACK
-// ============================================================
-
-function aiDeploy() {
-  const p = G.players[G.currentPlayer];
-  const myTerritories = G.territories.filter(t=>t.owner===G.currentPlayer);
-  while(p.troops > 0 && myTerritories.length) {
-    // Deploy to weakest border territory
-    const border = myTerritories.filter(t => ADJACENCY[t.id].some(a => G.territories[a].owner !== G.currentPlayer));
-    const target = border.length ? border.sort((a,b)=>a.troops-b.troops)[0] : myTerritories[0];
-    target.troops++;
-    p.troops--;
-  }
   drawMap(); updateUI();
+
+  // Show result
+  showModal(`
+    <h2>⚔️ ${conquered?'TERRITORY CONQUERED!':'Battle Result'}</h2>
+    <div class="modal-body">
+      <strong>${src.name}</strong> vs <strong>${def.name}</strong>
+    </div>
+    <div style="margin-bottom:12px;">
+      <div style="font-family:var(--fm);font-size:12px;color:var(--muted);margin-bottom:6px">ATTACK (${atkP.flag})</div>
+      <div class="dice-area">${aRolls.map(r=>`<div class="die a">${r}</div>`).join('')}</div>
+      <div style="font-family:var(--fm);font-size:12px;color:var(--muted);margin:8px 0 6px">DEFENSE (${defP.flag})</div>
+      <div class="dice-area">${dRolls.map(r=>`<div class="die d">${r}</div>`).join('')}</div>
+    </div>
+    <div class="result-line">
+      <span>Attacker lost: <strong style="color:var(--danger)">${aLoss}</strong></span>
+      <span>Defender lost: <strong style="color:var(--accent3)">${dLoss}</strong></span>
+    </div>
+    ${conquered?`<div style="text-align:center;margin-top:12px;font-family:var(--fd);font-size:17px;color:var(--accent3);font-weight:700;">✓ ${def.name} is now yours!</div>`:''}
+    <div class="m-btns">
+      ${!conquered&&src.troops>1?`<button class="tbtn go" onclick="closeModal();startCombat(${srcId},${defId})">Attack Again</button>`:''}
+      <button class="tbtn go" onclick="G.atkSrc=null;G.sel=null;closeModal();drawMap();setHint('Click your territory to attack again, or Stop Attacking.')">Continue</button>
+    </div>
+  `);
 }
 
-function aiAttack() {
-  const p = G.players[G.currentPlayer];
-  let attacked = false;
-
-  // Find best attack
-  const myT = G.territories.filter(t=>t.owner===G.currentPlayer&&t.troops>2);
-  for(const src of myT.sort((a,b)=>b.troops-a.troops)) {
-    const targets = ADJACENCY[src.id].filter(a => G.territories[a].owner !== G.currentPlayer && G.territories[a].troops < src.troops - 1);
-    if(targets.length) {
-      const def = G.territories[targets[0]];
-      // Check treaty
-      const treaty = G.treaties.find(t=>(t.a===G.currentPlayer&&t.b===def.owner)||(t.b===G.currentPlayer&&t.a===def.owner));
-      if(treaty && treaty.type==='nap') continue;
-      doCombat(src.id, targets[0]);
-      attacked = true;
-      break;
+// ═══════════════════════════════════════════════════════════
+// AI TURN
+// ═══════════════════════════════════════════════════════════
+function aiTurn(){
+  const pi=G.curP;
+  const p=G.players[pi];
+  setTimeout(()=>{
+    // Deploy
+    const mine=G.terrs.filter(t=>t.owner===pi);
+    let troops=p.troops;
+    while(troops>0&&mine.length){
+      const borders=mine.filter(t=>ADJ[t.id].some(a=>G.terrs[a].owner!==pi));
+      const tgt=borders.length?borders.sort((a,b)=>a.troops-b.troops)[0]:mine[rnd(mine.length)];
+      tgt.troops++;troops--;
     }
-  }
-  setTimeout(() => {
-    closeModal();
-    startMovePhase();
-  }, 1200);
+    p.troops=0;
+    // Tech
+    const cheap=TECH.filter(t=>!p.tech.includes(t.id)&&p.gdp>=t.cost);
+    if(cheap.length&&Math.random()<0.4){const tk=cheap[rnd(cheap.length)];p.gdp-=tk.cost;p.tech.push(tk.id);addLog(`${p.flag} unlocked ${tk.em} ${tk.name}`,'tk');}
+    // Attack (up to 3 times)
+    let attacks=0;
+    for(let a=0;a<3;a++){
+      const srcs=G.terrs.filter(t=>t.owner===pi&&t.troops>2).sort((a,b)=>b.troops-a.troops);
+      let attacked=false;
+      for(const src of srcs){
+        const tgts=ADJ[src.id].filter(a=>G.terrs[a].owner!==pi&&G.terrs[a].troops<src.troops-1);
+        if(tgts.length){
+          const tid=tgts.sort((a,b)=>G.terrs[a].troops-G.terrs[b].troops)[0];
+          const def=G.terrs[tid];
+          const ad=Math.min(3,src.troops-1);
+          const dd=Math.min(2,def.troops);
+          let ar=rollDice(ad).sort((a,b)=>b-a);
+          let dr=rollDice(dd).sort((a,b)=>b-a);
+          if(p.tech.includes(6))ar=ar.map(r=>Math.min(r+1,6));
+          let al=0,dl=0;
+          for(let i=0;i<Math.min(ar.length,dr.length);i++){ar[i]>dr[i]?dl++:al++;}
+          src.troops-=al; def.troops-=dl;
+          if(def.troops<=0){
+            def.owner=pi; G.conquered=true;
+            const mv=Math.min(ad,src.troops-1);def.troops=mv;src.troops=Math.max(1,src.troops-mv);
+            addLog(`⚔️ ${p.flag} took ${def.name}`,'ct');
+            // Elimination check
+            const owner=G.players.find((_,i)=>!G.players[i].alive===false&&G.terrs.some(t=>t.owner===i));
+          } else {
+            addLog(`⚔️ ${p.flag} attacked ${def.name}: a-${al} d-${dl}`,'ct');
+          }
+          attacked=true; attacks++;
+          break;
+        }
+      }
+      if(!attacked)break;
+    }
+    // Card
+    if(G.conquered){const c={type:rnd(3),terr:G.terrs[rnd(38)].id};p.cards.push(c);}
+    checkWin();
+    drawMap();updateUI();
+    endTurn();
+  },800);
 }
 
-// ============================================================
-// DRAW MAP
-// ============================================================
+// ═══════════════════════════════════════════════════════════
+// MAP SVG
+// ═══════════════════════════════════════════════════════════
+const CONT_LBL=[
+  {x:150,y:22,t:'NORTH AMERICA'},
+  {x:215,y:255,t:'SOUTH AMERICA'},
+  {x:415,y:22,t:'EUROPE'},
+  {x:412,y:230,t:'AFRICA'},
+  {x:610,y:22,t:'ASIA'},
+  {x:790,y:310,t:'OCEANIA'},
+];
 
-function drawMap() {
-  const svg = document.getElementById('map-svg');
-  // Keep static labels
-  const existingLabels = svg.querySelectorAll('.continent-label');
+function initMapSVG(){
+  const svg=document.getElementById('world-svg');
+  // Continent labels
+  CONT_LBL.forEach(l=>{
+    const el=document.createElementNS('http://www.w3.org/2000/svg','text');
+    el.setAttribute('x',l.x);el.setAttribute('y',l.y);
+    el.setAttribute('class','cont-lbl');el.textContent=l.t;
+    svg.appendChild(el);
+  });
+  // Adjacency lines
+  const drawn=new Set();
+  TERR.forEach(t=>{
+    ADJ[t.id].forEach(nb=>{
+      const key=[Math.min(t.id,nb),Math.max(t.id,nb)].join('-');
+      if(drawn.has(key))return; drawn.add(key);
+      const nb2=TERR[nb];
+      // Skip lines that wrap across map
+      if(Math.abs(t.cx-nb2.cx)>400)return;
+      const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+      line.setAttribute('x1',t.cx);line.setAttribute('y1',t.cy);
+      line.setAttribute('x2',nb2.cx);line.setAttribute('y2',nb2.cy);
+      line.setAttribute('class','adj-line');
+      svg.appendChild(line);
+    });
+  });
+}
 
-  // Remove old territories
-  svg.querySelectorAll('.territory-group').forEach(e=>e.remove());
+function drawMap(){
+  const svg=document.getElementById('world-svg');
+  // Remove territory groups
+  svg.querySelectorAll('.t-grp').forEach(e=>e.remove());
 
-  const r = 22;
-  G.territories.forEach(t => {
-    const owner = t.owner >= 0 ? G.players[t.owner] : null;
-    const color = owner ? owner.color : '#334155';
-    const isSelected = G.selectedTerritory === t.id || G.attackSource === t.id;
-    const isAttackable = G.phase===5 && G.attackSource!==null && ADJACENCY[G.attackSource].includes(t.id) && t.owner !== G.currentPlayer;
-    const isMovable = G.phase===6 && G.selectedTerritory!==null && ADJACENCY[G.selectedTerritory].includes(t.id) && t.owner === G.currentPlayer;
+  G.terrs.forEach(t=>{
+    const owner=t.owner>=0?G.players[t.owner]:null;
+    const color=owner?owner.color:'#2a3f5a';
+    const isSel=G.sel===t.id||G.atkSrc===t.id;
+    const canAtk=G.phase===4&&G.atkSrc!==null&&ADJ[G.atkSrc].includes(t.id)&&t.owner!==G.curP;
+    const canMv=G.phase===5&&G.sel!==null&&ADJ[G.sel].includes(t.id)&&t.owner===G.curP;
 
-    const g = document.createElementNS('http://www.w3.org/2000/svg','g');
-    g.setAttribute('class','territory-group');
+    const g=document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('class','t-grp');
 
-    // Territory circle
-    const circle = document.createElementNS('http://www.w3.org/2000/svg','circle');
-    circle.setAttribute('cx', t.cx);
-    circle.setAttribute('cy', t.cy);
-    circle.setAttribute('r', r);
-    circle.setAttribute('fill', color);
-    circle.setAttribute('fill-opacity', '0.75');
-    circle.setAttribute('stroke', isSelected ? '#fff' : isAttackable ? '#fc8181' : isMovable ? '#68d391' : 'rgba(255,255,255,0.2)');
-    circle.setAttribute('stroke-width', isSelected ? '3' : isAttackable||isMovable ? '2.5' : '1');
-    circle.setAttribute('class', 'territory');
-    if(isAttackable) circle.setAttribute('style','animation:pulse-red 1s infinite');
-    if(isMovable) circle.setAttribute('style','animation:pulse-green 1s infinite');
-    circle.addEventListener('click', () => onTerritoryClick(t.id));
+    // Territory shape
+    const path=document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d',t.p);
+    path.setAttribute('fill',color);
+    path.setAttribute('fill-opacity','0.82');
+    path.setAttribute('stroke',isSel?'#fff':canAtk?'#ff6b6b':canMv?'#5ee89a':'rgba(255,255,255,0.2)');
+    path.setAttribute('stroke-width',isSel?'3':canAtk||canMv?'2.5':'1.2');
+    path.setAttribute('class','t-region'+(isSel?' sel':canAtk?' can-atk':canMv?' can-mv':''));
+    path.style.cursor='pointer';
+    path.addEventListener('click',()=>onTerritoryClick(t.id));
+    g.appendChild(path);
 
+    // Troop circle
+    const circle=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    circle.setAttribute('cx',t.cx);circle.setAttribute('cy',t.cy);circle.setAttribute('r','16');
+    circle.setAttribute('fill',color);circle.setAttribute('fill-opacity','0.95');
+    circle.setAttribute('stroke','rgba(255,255,255,0.5)');circle.setAttribute('stroke-width','1.5');
+    circle.setAttribute('class','t-pip');
+    circle.style.cursor='pointer';
+    circle.addEventListener('click',()=>onTerritoryClick(t.id));
     g.appendChild(circle);
 
     // Troop count
-    const troopText = document.createElementNS('http://www.w3.org/2000/svg','text');
-    troopText.setAttribute('x', t.cx);
-    troopText.setAttribute('y', t.cy - 3);
-    troopText.setAttribute('class','t-troops');
-    troopText.textContent = t.troops;
-    g.appendChild(troopText);
+    const tt=document.createElementNS('http://www.w3.org/2000/svg','text');
+    tt.setAttribute('x',t.cx);tt.setAttribute('y',t.cy);
+    tt.setAttribute('class','t-troop');tt.textContent=t.troops;
+    g.appendChild(tt);
 
-    // Territory name
-    const nameText = document.createElementNS('http://www.w3.org/2000/svg','text');
-    nameText.setAttribute('x', t.cx);
-    nameText.setAttribute('y', t.cy + 12);
-    nameText.setAttribute('class','t-label');
-    nameText.textContent = t.name.length > 8 ? t.name.substring(0,7)+'.' : t.name;
-    g.appendChild(nameText);
+    // Territory name below
+    const tn=document.createElementNS('http://www.w3.org/2000/svg','text');
+    tn.setAttribute('x',t.cx);tn.setAttribute('y',t.cy+26);
+    tn.setAttribute('class','t-name');tn.textContent=t.name;
+    g.appendChild(tn);
 
-    // Cyber indicator
-    if(G.cyberApplied[t.id]) {
-      const cyberDot = document.createElementNS('http://www.w3.org/2000/svg','circle');
-      cyberDot.setAttribute('cx', t.cx + r - 5);
-      cyberDot.setAttribute('cy', t.cy - r + 5);
-      cyberDot.setAttribute('r', 5);
-      cyberDot.setAttribute('fill', '#b794f4');
-      g.appendChild(cyberDot);
-    }
-
-    // Tech: nukes indicator
-    if(owner && G.players.indexOf(owner)===t.owner && owner.tech.includes(5)) {
-      const nukeDot = document.createElementNS('http://www.w3.org/2000/svg','text');
-      nukeDot.setAttribute('x', t.cx - r + 6);
-      nukeDot.setAttribute('y', t.cy - r + 8);
-      nukeDot.setAttribute('class','t-icon');
-      nukeDot.textContent = '☢';
-      g.appendChild(nukeDot);
+    // Owner flag
+    if(owner){
+      const fl=document.createElementNS('http://www.w3.org/2000/svg','text');
+      fl.setAttribute('x',t.cx+14);fl.setAttribute('y',t.cy-12);
+      fl.setAttribute('style','font-size:10px;text-anchor:middle;dominant-baseline:middle;pointer-events:none;');
+      fl.textContent=owner.flag;
+      g.appendChild(fl);
     }
 
     svg.appendChild(g);
   });
 }
 
-// ============================================================
-// UI
-// ============================================================
+// ═══════════════════════════════════════════════════════════
+// UI HELPERS
+// ═══════════════════════════════════════════════════════════
+function updateUI(){updateTopbar();updateResources();updateFactions();renderCards();renderTech();updateEventBox();}
 
-function initUI() {
-  drawPhaseSteps();
-  updateFactionsOverview();
+function updateTopbar(){
+  document.getElementById('rn').textContent=G.setupPhase?'Setup':G.round;
+  const p=G.setupPhase?G.players[G.curP]:cur();
+  document.getElementById('cpn').textContent=`${p.flag} ${p.name}`;
+  document.getElementById('phase-pill').textContent=G.setupPhase?'Placement':G.phaseNames[G.phase];
+  // Phase track
+  const pt=document.getElementById('phase-track');
+  pt.innerHTML=G.phaseNames.map((_,i)=>`<div class="pt-step ${i<G.phase?'done':i===G.phase?'active':''}"></div>`).join('');
 }
 
-function drawPhaseSteps() {
-  const steps = document.getElementById('phase-steps');
-  steps.innerHTML = G.phaseNames.map((_,i)=>`<div class="ps" id="ps-${i}"></div>`).join('');
+function updateResources(){
+  if(G.setupPhase)return;
+  const p=cur();
+  document.getElementById('r-troops').textContent=p.troops;
+  document.getElementById('r-gdp').textContent=p.gdp;
+  document.getElementById('r-cyber').textContent=p.cyber;
 }
 
-function updateUI() {
-  const p = currentPlayer();
-
-  // Topbar
-  document.getElementById('round-num').textContent = G.round;
-  document.getElementById('cur-player-name').textContent = `${p.flag} ${p.name}`;
-  document.getElementById('phase-badge').textContent = G.phaseNames[G.phase];
-
-  // Resources
-  document.getElementById('res-troops').textContent = p.troops;
-  document.getElementById('res-gdp').textContent = p.gdp;
-  document.getElementById('res-cyber').textContent = p.cyber;
-
-  // Phase steps
-  G.phaseNames.forEach((_,i) => {
-    const el = document.getElementById('ps-'+i);
-    if(!el) return;
-    el.className = 'ps ' + (i < G.phase ? 'done' : i===G.phase ? 'active' : '');
-  });
-
-  // Event
-  if(G.currentEvent) {
-    document.getElementById('event-display').innerHTML = `<div class="event-name">${G.currentEvent.name}</div><div class="event-desc">${G.currentEvent.effect}</div>`;
-  }
-
-  // Tech
-  updateTechDisplay();
-
-  // Cyber ops
-  updateCyberDisplay();
-
-  // Diplomacy
-  updateDiploDisplay();
-
-  // Factions
-  updateFactionsOverview();
-
-  // Phase button
-  const phaseBtn = document.getElementById('phase-btn');
-  const phaseNames = ['Skip Economy','Skip Diplomacy','Skip Tech','Skip Cyber','Done Deploying','End Attacks','End Turn'];
-  phaseBtn.textContent = (phaseNames[G.phase] || 'Next Phase') + ' →';
-
-  // Tick treaties
-  G.treaties = G.treaties.map(t=>({...t,rounds:t.rounds-0})).filter(t=>t.rounds>0);
-}
-
-function updateTechDisplay() {
-  const p = currentPlayer();
-  const grid = document.getElementById('tech-display');
-  grid.innerHTML = TECH_TREE.map(t => {
-    let cost = t.cost;
-    if(FACTIONS[p.factionId].techBonus) cost = Math.max(1,cost-1);
-    const unlocked = p.tech.includes(t.id);
-    const affordable = !unlocked && p.gdp >= cost && G.phase===2 && p.isHuman;
-    return `<div class="tech-item ${unlocked?'unlocked':affordable?'affordable':''}" onclick="${affordable?`buyTech(${t.id})`:''}" title="${t.effect}">
-      <div class="tech-name">${t.emoji} ${t.name}</div>
-      <div class="tech-cost">${unlocked?'✓ UNLOCKED':`${cost} GDP`}</div>
-      <div class="tech-effect">${t.effect}</div>
+function updateFactions(){
+  document.getElementById('factions-list').innerHTML=G.players.map((p,i)=>{
+    const terrs=G.terrs.filter(t=>t.owner===i).length;
+    const active=i===G.curP;
+    return `<div class="player-row ${active?'active-player':''} ${p.alive?'':'elim'}">
+      <div class="p-dot" style="background:${p.color}"></div>
+      <div class="p-name" style="color:${p.color}">${p.flag} ${p.name}</div>
+      <div class="p-stats">T:<span>${terrs}</span> G:<span>${p.gdp}</span> C:<span>${p.cards.length}</span></div>
     </div>`;
   }).join('');
 }
 
-function updateCyberDisplay() {
-  const p = currentPlayer();
-  document.getElementById('cyber-display').innerHTML = CYBER_OPS.map(op => {
-    let cost = op.cost;
-    if(FACTIONS[p.factionId].cyberBonus) cost = Math.max(1,cost-1);
-    return `<div class="cyber-op" onclick="doCyberOp(${op.id})">
-      <div>
-        <div class="cyber-op-name">${op.name}</div>
-        <div class="cyber-op-desc">${op.desc}</div>
-        <div style="font-size:11px;color:var(--accent3);margin-top:2px">${op.effect}</div>
-      </div>
-      <div class="cyber-cost">${cost}⚡</div>
-    </div>`;
-  }).join('');
+function updateEventBox(){
+  if(!G.event)return;
+  document.getElementById('event-box').innerHTML=`<div class="ev-name">${G.event.name}</div><div class="ev-desc">${G.event.desc}</div>`;
 }
 
-function updateDiploDisplay() {
-  const diploEl = document.getElementById('diplo-display');
-  if(!G.treaties.length) {
-    diploEl.innerHTML = '<div style="font-size:12px;color:var(--muted)">No active treaties</div>';
-    return;
-  }
-  diploEl.innerHTML = G.treaties.map(tr => {
-    const pa = G.players[tr.a], pb = G.players[tr.b];
-    return `<div class="treaty-item">
-      <div class="treaty-dot" style="background:${pa.color}"></div>
-      <div class="treaty-dot" style="background:${pb.color}"></div>
-      <span style="font-size:12px">${pa.flag}${pb.flag}</span>
-      <span class="treaty-badge treaty-${tr.type}">${tr.type.toUpperCase()}</span>
-      <span style="font-family:var(--font-mono);font-size:10px;color:var(--muted);margin-left:auto">${tr.rounds}r</span>
-    </div>`;
-  }).join('');
+function showPane(id){
+  document.querySelectorAll('.sb-pane').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.sb-tab').forEach(t=>t.classList.toggle('active',t.dataset.pane===id));
+  document.getElementById(id).classList.add('active');
 }
 
-function updateFactionsOverview() {
-  const el = document.getElementById('factions-overview');
-  el.innerHTML = G.players.map((p,pi) => {
-    const territories = G.territories.filter(t=>t.owner===pi).length;
-    const isCurrent = pi === G.currentPlayer;
-    return `<div class="faction-strip ${isCurrent?'current-player':''}">
-      <div class="faction-dot" style="background:${p.color}"></div>
-      <div class="faction-name" style="color:${p.color}">${p.flag} ${p.name}</div>
-      <div class="faction-stats">T:<span>${territories}</span> G:<span>${p.gdp}</span></div>
-    </div>`;
-  }).join('');
+function setHint(msg){document.getElementById('hint-text').textContent=msg;}
+
+function showModal(html){
+  document.getElementById('modal-inner').innerHTML=html;
+  document.getElementById('modal-wrap').classList.add('open');
+}
+function closeModal(){document.getElementById('modal-wrap').classList.remove('open');}
+
+function notify(msg){
+  const n=document.getElementById('notif');
+  n.textContent=msg;n.classList.add('show');
+  clearTimeout(n._t);n._t=setTimeout(()=>n.classList.remove('show'),3000);
 }
 
-function addLog(msg) {
-  G.log.unshift(msg);
-  const logEl = document.getElementById('log');
-  logEl.innerHTML = G.log.slice(0,60).map(l=>`<div class="log-entry">${l}</div>`).join('');
+function addLog(msg,cls=''){
+  const el=document.getElementById('log-list');
+  el.insertAdjacentHTML('afterbegin',`<div class="le ${cls}">${msg}</div>`);
+  // trim
+  while(el.children.length>80)el.removeChild(el.lastChild);
 }
 
-function setHint(msg) {
-  document.getElementById('action-hint').textContent = msg;
+function checkWin(){
+  const alive=G.players.filter(p=>p.alive);
+  if(alive.length===1){showWinner(alive[0]);}
 }
 
-function showModal(html) {
-  document.getElementById('modal-content').innerHTML = html;
-  document.getElementById('modal').style.display = 'flex';
+function showWinner(p){
+  const w=document.getElementById('winner');
+  document.getElementById('win-title').textContent=`${p.flag} ${p.name}`;
+  document.getElementById('win-title').style.color=p.color;
+  w.classList.add('show');
 }
 
-function closeModal() {
-  document.getElementById('modal').style.display = 'none';
-}
-
-function notify(msg) {
-  const n = document.getElementById('notif');
-  n.textContent = msg;
-  n.classList.add('show');
-  setTimeout(()=>n.classList.remove('show'), 2500);
-}
-
-function checkWin() {
-  const owners = new Set(G.territories.map(t=>t.owner));
-  if(owners.size === 1) {
-    const winner = G.players[[...owners][0]];
-    showWinner(winner);
-  }
-}
-
-function showWinner(winner) {
-  document.getElementById('winner-text').textContent = `${winner.flag} ${winner.name}`;
-  document.getElementById('winner-text').style.color = winner.color;
-  document.getElementById('winner-sub').textContent = 'achieves world domination';
-  document.getElementById('winner-screen').classList.add('show');
-}
-
-// ============================================================
+// ═══════════════════════════════════════════════════════════
 // UTILS
-// ============================================================
+// ═══════════════════════════════════════════════════════════
+function rollDice(n){return Array.from({length:n},()=>Math.ceil(Math.random()*6));}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function rnd(n){return Math.floor(Math.random()*n);}
+function cur(){return G.players[G.curP];}
 
-function shuffle(arr) {
-  for(let i=arr.length-1;i>0;i--) {
-    const j=Math.floor(Math.random()*(i+1));
-    [arr[i],arr[j]]=[arr[j],arr[i]];
-  }
-  return arr;
-}
-
-function currentPlayer() { return G.players[G.currentPlayer]; }
-
-// ============================================================
 // BOOT
-// ============================================================
-
-buildSetupScreen();
+buildSetupUI();
 </script>
 </body>
 </html>
